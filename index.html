@@ -1,1 +1,853 @@
-pbpaste > index.html && echo Done
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>عبقرينو - مهارات حسابية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #f5c842;
+    --gold-light: #fde98a;
+    --blue: #4a7fa5;
+    --blue-light: #b8d8ea;
+    --dark: #1a2a3a;
+    --white: #fff;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --shadow: 0 8px 32px rgba(74,127,165,0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Tajawal', sans-serif;
+    background: linear-gradient(135deg, #1a2a3a 0%, #2c4a6e 60%, #1a2a3a 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px;
+    gap: 20px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
+    background-size: 55px 55px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 28px 26px 24px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    position: relative;
+    z-index: 1;
+    border: 3px solid var(--blue);
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .school-name {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--dark);
+    line-height: 1.25;
+  }
+
+  .school-sub {
+    font-size: 12px;
+    color: var(--blue);
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .logo {
+    width: 52px;
+    height: 52px;
+    background: var(--dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .divider {
+    height: 2px;
+    background: linear-gradient(90deg, var(--blue), var(--gold), var(--blue));
+    margin: 10px 0 16px;
+    border-radius: 2px;
+  }
+
+  .game-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 900;
+    color: #8b0000;
+    margin-bottom: 4px;
+  }
+
+  .game-subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+
+  /* ── Player name ── */
+  .name-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+
+  .name-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+    white-space: nowrap;
+  }
+
+  .name-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .name-input:focus { border-color: var(--blue); }
+
+  /* ── Difficulty ── */
+  .diff-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+
+  .diff-btn {
+    padding: 7px 18px;
+    border-radius: 20px;
+    border: 2px solid #ddd;
+    background: #fff;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #555;
+    transition: all 0.2s;
+  }
+  .diff-btn.active {
+    background: var(--dark);
+    color: #fff;
+    border-color: var(--dark);
+  }
+  .diff-btn:hover:not(.active) { background: #f0f0f0; }
+
+  /* ── Timer ── */
+  .timer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .timer-display {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--dark);
+    min-width: 72px;
+    text-align: center;
+    transition: color 0.3s;
+  }
+  .timer-display.warning { color: #e67e22; }
+  .timer-display.danger  { color: var(--red); animation: pulse 0.6s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .timer-ring {
+    width: 56px;
+    height: 56px;
+    transform: rotate(-90deg);
+  }
+  .timer-ring circle {
+    fill: none;
+    stroke-width: 5;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.3s;
+  }
+  .timer-ring .bg-circle { stroke: #e0e0e0; }
+  .timer-ring .fg-circle {
+    stroke: var(--green);
+    stroke-dasharray: 157;
+    stroke-dashoffset: 0;
+  }
+
+  /* ── Grid ── */
+  .grid-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  .grid-outer {
+    display: grid;
+    grid-template-columns: repeat(4, 70px);
+    grid-template-rows: repeat(4, 70px);
+    gap: 4px;
+    background: var(--dark);
+    padding: 6px;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .cell {
+    width: 70px;
+    height: 70px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 900;
+    font-family: 'Tajawal', sans-serif;
+  }
+
+  .cell.corner   { background: transparent; }
+  .cell.sum      { background: var(--gold); color: var(--dark); font-size: 26px; }
+  .cell.input-cell { background: var(--blue-light); position: relative; }
+
+  .cell input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 900;
+    font-family: 'Tajawal', sans-serif;
+    color: var(--dark);
+    outline: none;
+    cursor: pointer;
+  }
+  .cell input:focus { background: rgba(74,127,165,0.22); border-radius: 8px; }
+  .cell.correct { background: #b6f0c8 !important; }
+  .cell.wrong   { background: #ffc8c8 !important; }
+
+  /* ── Message ── */
+  .message {
+    text-align: center;
+    font-size: 17px;
+    font-weight: 700;
+    min-height: 26px;
+    margin-bottom: 12px;
+    transition: all 0.3s;
+  }
+  .message.success { color: var(--green); }
+  .message.error   { color: var(--red); }
+  .message.timeout { color: #e67e22; }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 9px 20px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--dark); color: #fff; }
+  .btn-primary:hover { background: var(--blue); transform: scale(1.04); }
+  .btn-check { background: var(--gold); color: var(--dark); }
+  .btn-check:hover { background: var(--gold-light); transform: scale(1.04); }
+  .btn-clear { background: #eee; color: #555; }
+  .btn-clear:hover { background: #ddd; }
+  .btn-board { background: #6c3483; color: #fff; }
+  .btn-board:hover { background: #7d3c98; transform: scale(1.04); }
+
+  /* ── Score bar ── */
+  .score-bar {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #555;
+  }
+  .score-bar span { color: var(--dark); font-size: 18px; }
+
+  /* ── Leaderboard modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    border: 3px solid var(--blue);
+    transform: translateY(20px);
+    transition: transform 0.25s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--dark);
+    margin-bottom: 18px;
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .leaderboard-table th {
+    background: var(--dark);
+    color: #fff;
+    padding: 8px 10px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .leaderboard-table td {
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    color: #333;
+    font-weight: 700;
+  }
+  .leaderboard-table tr:nth-child(even) td { background: #f7f7f7; }
+  .leaderboard-table tr:first-child td { background: #fff9e0; }
+
+  .rank-medal { font-size: 18px; }
+
+  .modal-footer {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 18px;
+  }
+
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { background: #c0392b; }
+  .btn-close-modal { background: #eee; color: #555; }
+  .btn-close-modal:hover { background: #ddd; }
+
+  .empty-board {
+    text-align: center;
+    color: #aaa;
+    font-size: 14px;
+    padding: 20px 0;
+  }
+
+  /* ── Confetti ── */
+  .confetti-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    overflow: hidden;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    opacity: 0;
+    animation: confettiFall 2.2s ease-in forwards;
+  }
+
+  @keyframes confettiFall {
+    0%   { transform: translateY(-40px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(105vh) rotate(800deg); opacity: 0; }
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    z-index: 1;
+    position: relative;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     MAIN CARD
+═══════════════════════════════════════ -->
+<div class="card">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="school-name">مدارس الأرقم</div>
+      <div class="school-sub">وحدة الموهبة والذكاء الاصطناعي</div>
+    </div>
+    <div class="logo">🏫</div>
+  </div>
+  <div class="divider"></div>
+
+  <div class="game-title">تمرين مهارات حسابية (عبقرينو)</div>
+  <div class="game-subtitle">
+    ضع الأرقام من 1 إلى 9 في الخانات الزرقاء<br>
+    بحيث يصح مجموع كل صف وعمود 🧠
+  </div>
+
+  <!-- Player name -->
+  <div class="name-row">
+    <span class="name-label">اسم اللاعب:</span>
+    <input class="name-input" id="playerName" type="text" placeholder="أدخل اسمك هنا..." maxlength="20">
+  </div>
+
+  <!-- Difficulty -->
+  <div class="diff-row">
+    <button class="diff-btn active" onclick="setDifficulty('easy', this)">سهل ⭐</button>
+    <button class="diff-btn" onclick="setDifficulty('medium', this)">متوسط ⭐⭐</button>
+    <button class="diff-btn" onclick="setDifficulty('hard', this)">صعب ⭐⭐⭐</button>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-bar">
+    <svg class="timer-ring" viewBox="0 0 60 60">
+      <circle class="bg-circle" cx="30" cy="30" r="25"/>
+      <circle class="fg-circle" id="timerArc" cx="30" cy="30" r="25"/>
+    </svg>
+    <div class="timer-display" id="timerDisplay">2:00</div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid-wrapper">
+    <div class="grid-outer" id="grid"></div>
+  </div>
+
+  <!-- Message -->
+  <div class="message" id="message"></div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-primary" onclick="newPuzzle()">🔀 لغز جديد</button>
+    <button class="btn btn-check" onclick="checkAnswers()">✅ تحقق</button>
+    <button class="btn btn-clear" onclick="clearInputs()">🗑️ مسح</button>
+    <button class="btn btn-board" onclick="openLeaderboard()">🏆 الصدارة</button>
+  </div>
+
+  <!-- Score -->
+  <div class="score-bar">
+    <div>النجاحات: <span id="wins">0</span></div>
+    <div>المحاولات: <span id="attempts">0</span></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════
+     LEADERBOARD MODAL
+═══════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeLeaderboardOutside(event)">
+  <div class="modal">
+    <div class="modal-title">🏆 لوحة الصدارة</div>
+    <div id="leaderboardContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="clearLeaderboard()">🗑️ مسح الكل</button>
+      <button class="btn btn-close-modal" onclick="closeLeaderboard()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confetti -->
+<div class="confetti-container" id="confetti"></div>
+
+<div class="footer">مدارس الأرقم · وحدة الموهبة والذكاء الاصطناعي</div>
+
+<!-- ═══════════════════════════════════════
+     SCRIPT
+═══════════════════════════════════════ -->
+<script>
+// ─── Constants ────────────────────────────────────────
+const HINTS     = { easy: 4, medium: 2, hard: 1 };
+const DURATION  = { easy: 120, medium: 90, hard: 60 };
+const DIFF_LABEL = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
+const MEDALS    = ['🥇','🥈','🥉'];
+const COLORS    = ['#f5c842','#4a7fa5','#2ecc71','#e74c3c','#9b59b6','#e67e22','#1abc9c'];
+
+// ─── State ────────────────────────────────────────────
+let solution   = [];
+let rowSums    = [];
+let colSums    = [];
+let wins       = 0;
+let attempts   = 0;
+let difficulty = 'easy';
+let timerMax   = 120;
+let timeLeft   = 120;
+let timerID    = null;
+let gameOver   = false;
+
+// ─── Shuffle ──────────────────────────────────────────
+function shuffle(a) {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [b[i], b[j]] = [b[j], b[i]];
+  }
+  return b;
+}
+
+// ─── Generate puzzle ──────────────────────────────────
+function generatePuzzle() {
+  const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+  solution = [
+    [nums[0], nums[1], nums[2]],
+    [nums[3], nums[4], nums[5]],
+    [nums[6], nums[7], nums[8]],
+  ];
+  rowSums = solution.map(row => row.reduce((a,b) => a+b, 0));
+  colSums = [0,1,2].map(c => solution.reduce((a,r) => a + r[c], 0));
+}
+
+// ─── Render grid ──────────────────────────────────────
+function renderGrid(hints) {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  const hintSet = new Set();
+  const positions = shuffle([0,1,2,3,4,5,6,7,8]);
+  for (let i = 0; i < hints; i++) hintSet.add(positions[i]);
+
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      if (r < 3 && c < 3) {
+        const idx = r * 3 + c;
+        cell.classList.add('input-cell');
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+
+        if (hintSet.has(idx)) {
+          const inp = document.createElement('input');
+          inp.type = 'number';
+          inp.value = solution[r][c];
+          inp.readOnly = true;
+          inp.style.color = 'var(--blue)';
+          cell.dataset.fixed = 'true';
+          cell.appendChild(inp);
+        } else {
+          const inp = document.createElement('input');
+          inp.type = 'number';
+          inp.min = 1;
+          inp.max = 9;
+          inp.placeholder = '?';
+          inp.addEventListener('input', () => {
+            if (!gameOver) liveCheck(inp, r, c);
+          });
+          cell.appendChild(inp);
+        }
+      } else if (r === 3 && c < 3) {
+        cell.classList.add('sum');
+        cell.textContent = colSums[c];
+      } else if (c === 3 && r < 3) {
+        cell.classList.add('sum');
+        cell.textContent = rowSums[r];
+      } else {
+        cell.classList.add('corner');
+      }
+
+      grid.appendChild(cell);
+    }
+  }
+}
+
+// ─── Live colour feedback ─────────────────────────────
+function liveCheck(inp, r, c) {
+  const val  = parseInt(inp.value);
+  const cell = inp.parentElement;
+  cell.classList.remove('correct', 'wrong');
+  if (!isNaN(val)) {
+    cell.classList.add(val === solution[r][c] ? 'correct' : 'wrong');
+  }
+}
+
+// ─── Check all ────────────────────────────────────────
+function checkAnswers() {
+  if (gameOver) return;
+  attempts++;
+  document.getElementById('attempts').textContent = attempts;
+
+  const cells = document.querySelectorAll('.cell.input-cell');
+  let allCorrect = true;
+
+  cells.forEach(cell => {
+    if (cell.dataset.fixed) return;
+    const r   = parseInt(cell.dataset.r);
+    const c   = parseInt(cell.dataset.c);
+    const val = parseInt(cell.querySelector('input').value);
+    cell.classList.remove('correct', 'wrong');
+    if (val === solution[r][c]) {
+      cell.classList.add('correct');
+    } else {
+      cell.classList.add('wrong');
+      allCorrect = false;
+    }
+  });
+
+  const msg = document.getElementById('message');
+  if (allCorrect) {
+    stopTimer();
+    wins++;
+    document.getElementById('wins').textContent = wins;
+    msg.textContent = '🎉 ممتاز! أجبت بشكل صحيح!';
+    msg.className   = 'message success';
+    launchConfetti();
+    saveScore(timerMax - timeLeft);
+    gameOver = true;
+  } else {
+    msg.textContent = '❌ بعض الإجابات خاطئة، حاول مجدداً!';
+    msg.className   = 'message error';
+  }
+}
+
+// ─── New puzzle ───────────────────────────────────────
+function newPuzzle() {
+  stopTimer();
+  generatePuzzle();
+  renderGrid(HINTS[difficulty]);
+  document.getElementById('message').textContent = '';
+  document.getElementById('message').className = 'message';
+  gameOver = false;
+  startTimer();
+}
+
+// ─── Clear inputs ─────────────────────────────────────
+function clearInputs() {
+  if (gameOver) return;
+  document.querySelectorAll('.cell.input-cell:not([data-fixed]) input').forEach(inp => {
+    inp.value = '';
+    inp.parentElement.classList.remove('correct', 'wrong');
+  });
+  document.getElementById('message').textContent = '';
+}
+
+// ─── Difficulty ───────────────────────────────────────
+function setDifficulty(d, btn) {
+  difficulty = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  newPuzzle();
+}
+
+// ─── Timer ────────────────────────────────────────────
+function startTimer() {
+  timerMax  = DURATION[difficulty];
+  timeLeft  = timerMax;
+  updateTimerUI();
+  timerID = setInterval(tick, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerID);
+  timerID = null;
+}
+
+function tick() {
+  timeLeft--;
+  updateTimerUI();
+  if (timeLeft <= 0) {
+    stopTimer();
+    gameOver = true;
+    document.getElementById('message').textContent = '⏰ انتهى الوقت! حاول مرة أخرى.';
+    document.getElementById('message').className   = 'message timeout';
+    attempts++;
+    document.getElementById('attempts').textContent = attempts;
+  }
+}
+
+function updateTimerUI() {
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+  const disp = document.getElementById('timerDisplay');
+  disp.textContent = mins + ':' + String(secs).padStart(2, '0');
+
+  const ratio     = timeLeft / timerMax;
+  const arc       = document.getElementById('timerArc');
+  const circumf   = 2 * Math.PI * 25; // r=25
+  arc.style.strokeDashoffset = circumf * (1 - ratio);
+
+  if (ratio > 0.4) {
+    arc.style.stroke = 'var(--green)';
+    disp.className = 'timer-display';
+  } else if (ratio > 0.2) {
+    arc.style.stroke = '#e67e22';
+    disp.className = 'timer-display warning';
+  } else {
+    arc.style.stroke = 'var(--red)';
+    disp.className = 'timer-display danger';
+  }
+
+  // initialise dasharray properly
+  arc.style.strokeDasharray = circumf;
+}
+
+// ─── Leaderboard ─────────────────────────────────────
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem('abaqreeno_lb') || '[]'); }
+  catch { return []; }
+}
+
+function saveScore(timeTaken) {
+  const name = document.getElementById('playerName').value.trim() || 'لاعب مجهول';
+  const lb   = getLeaderboard();
+  lb.push({
+    name,
+    diff: DIFF_LABEL[difficulty],
+    time: timeTaken,
+    date: new Date().toLocaleDateString('ar-SA'),
+  });
+  // Sort: hard first, then medium, then easy; within same diff, fastest time
+  const diffOrder = { 'صعب': 0, 'متوسط': 1, 'سهل': 2 };
+  lb.sort((a, b) => {
+    if (diffOrder[a.diff] !== diffOrder[b.diff]) return diffOrder[a.diff] - diffOrder[b.diff];
+    return a.time - b.time;
+  });
+  // Keep top 20
+  if (lb.length > 20) lb.splice(20);
+  localStorage.setItem('abaqreeno_lb', JSON.stringify(lb));
+}
+
+function renderLeaderboard() {
+  const lb  = getLeaderboard();
+  const div = document.getElementById('leaderboardContent');
+
+  if (lb.length === 0) {
+    div.innerHTML = '<div class="empty-board">لا توجد نتائج بعد.<br>العب وأجب بشكل صحيح لتظهر هنا! 🎯</div>';
+    return;
+  }
+
+  let html = `<table class="leaderboard-table">
+    <thead><tr>
+      <th>#</th><th>اللاعب</th><th>المستوى</th><th>الوقت (ثانية)</th><th>التاريخ</th>
+    </tr></thead><tbody>`;
+
+  lb.forEach((entry, i) => {
+    const medal = i < 3 ? `<span class="rank-medal">${MEDALS[i]}</span>` : (i + 1);
+    html += `<tr>
+      <td>${medal}</td>
+      <td>${escapeHtml(entry.name)}</td>
+      <td>${entry.diff}</td>
+      <td>${entry.time}</td>
+      <td>${entry.date}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openLeaderboard() {
+  renderLeaderboard();
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeLeaderboard() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function closeLeaderboardOutside(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeLeaderboard();
+}
+
+function clearLeaderboard() {
+  if (confirm('هل تريد حذف جميع النتائج؟')) {
+    localStorage.removeItem('abaqreeno_lb');
+    renderLeaderboard();
+  }
+}
+
+// ─── Confetti ─────────────────────────────────────────
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const size = 8 + Math.random() * 10;
+    piece.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      top: -20px;
+      width: ${size}px;
+      height: ${size}px;
+      background: ${COLORS[Math.floor(Math.random() * COLORS.length)]};
+      border-radius: ${Math.random() > 0.5 ? '50%' : '3px'};
+      animation-delay: ${Math.random() * 1.4}s;
+      animation-duration: ${1.8 + Math.random() * 0.8}s;
+    `;
+    container.appendChild(piece);
+  }
+  setTimeout(() => container.innerHTML = '', 3500);
+}
+
+// ─── Init ─────────────────────────────────────────────
+newPuzzle();
+</script>
+</body>
+</html>
