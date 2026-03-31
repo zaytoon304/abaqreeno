@@ -3,571 +3,756 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>عبقرينو - مهارات حسابية</title>
+<title>عبقرينو – مدارس الأرقم</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+
+<!-- ══════════════════════════════════════════════════
+     Firebase SDK
+══════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
 <style>
-  :root {
-    --gold: #f5c842;
-    --gold-light: #fde98a;
-    --blue: #4a7fa5;
-    --blue-light: #b8d8ea;
-    --dark: #1a2a3a;
-    --white: #fff;
-    --green: #2ecc71;
-    --red: #e74c3c;
-    --shadow: 0 8px 32px rgba(74,127,165,0.18);
-  }
+/* ══════════════════════════════════════════════════
+   VARIABLES & RESET
+══════════════════════════════════════════════════ */
+:root {
+  --gold:       #f5c842;
+  --gold-light: #fde98a;
+  --blue:       #4a7fa5;
+  --blue-light: #b8d8ea;
+  --dark:       #1a2a3a;
+  --green:      #2ecc71;
+  --red:        #e74c3c;
+  --orange:     #e67e22;
+  --purple:     #7d3c98;
+  --bg1:        #1a2a3a;
+  --bg2:        #2c4a6e;
+  --shadow:     0 8px 32px rgba(74,127,165,0.22);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Tajawal', sans-serif;
+  background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg1) 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 16px;
+  gap: 16px;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
 
-  body {
-    font-family: 'Tajawal', sans-serif;
-    background: linear-gradient(135deg, #1a2a3a 0%, #2c4a6e 60%, #1a2a3a 100%);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 20px;
-    gap: 20px;
-  }
+/* ── Card ── */
+.card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 26px 24px 22px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+  position: relative;
+  z-index: 1;
+  border: 3px solid var(--blue);
+}
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
-    background-size: 55px 55px;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* ── School Header ── */
+.school-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.school-text .name  { font-size: 19px; font-weight: 900; color: var(--dark); line-height: 1.2; }
+.school-text .sub   { font-size: 11.5px; color: var(--blue); font-weight: 700; margin-top: 2px; }
+.school-logo {
+  width: 50px; height: 50px;
+  background: var(--dark); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 23px; flex-shrink: 0;
+}
+.divider {
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--gold), var(--blue));
+  margin: 10px 0 18px; border-radius: 2px;
+}
 
-  /* ── Card ── */
-  .card {
-    background: #fff;
-    border-radius: 24px;
-    padding: 28px 26px 24px;
-    max-width: 460px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
-    position: relative;
-    z-index: 1;
-    border: 3px solid var(--blue);
-  }
+/* ── Screens ── */
+.screen { display: none; }
+.screen.active { display: block; }
 
-  /* ── Header ── */
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
+/* ── Game title ── */
+.game-title {
+  text-align: center;
+  font-size: 23px; font-weight: 900;
+  color: #8b0000; margin-bottom: 4px;
+}
+.game-desc {
+  text-align: center; font-size: 13px; color: #555;
+  margin-bottom: 20px; line-height: 1.65;
+}
 
-  .school-name {
-    font-size: 20px;
-    font-weight: 900;
-    color: var(--dark);
-    line-height: 1.25;
-  }
+/* ── Form elements ── */
+.field-label {
+  font-size: 14px; font-weight: 700; color: var(--dark);
+  margin-bottom: 6px; display: block;
+}
+.text-input {
+  width: 100%; padding: 10px 14px;
+  border: 2px solid #ddd; border-radius: 12px;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 15px; font-weight: 700; color: var(--dark);
+  outline: none; transition: border-color .2s;
+  margin-bottom: 18px;
+}
+.text-input:focus { border-color: var(--blue); }
 
-  .school-sub {
-    font-size: 12px;
-    color: var(--blue);
-    font-weight: 700;
-    margin-top: 2px;
-  }
+/* ── Role cards ── */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-bottom: 18px;
+}
+.role-card {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  padding: 14px 8px;
+  border: 2px solid #ddd; border-radius: 16px;
+  cursor: pointer; transition: all .2s;
+  background: #fff;
+}
+.role-card:hover { border-color: var(--blue); background: #f0f8ff; }
+.role-card.selected {
+  border-color: var(--dark); background: var(--dark); color: #fff;
+}
+.role-card .icon { font-size: 30px; line-height: 1; }
+.role-card .label { font-size: 13px; font-weight: 700; color: inherit; }
+.role-card.selected .label { color: #fff; }
 
-  .logo {
-    width: 52px;
-    height: 52px;
-    background: var(--dark);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    flex-shrink: 0;
-  }
+/* ── Difficulty ── */
+.diff-row {
+  display: flex; gap: 8px;
+  justify-content: center; margin-bottom: 18px;
+}
+.diff-btn {
+  padding: 8px 20px; border-radius: 20px;
+  border: 2px solid #ddd; background: #fff;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; color: #555; transition: all .2s;
+}
+.diff-btn:hover:not(.active) { background: #f0f0f0; }
+.diff-btn.active {
+  background: var(--dark); color: #fff; border-color: var(--dark);
+}
 
-  .divider {
-    height: 2px;
-    background: linear-gradient(90deg, var(--blue), var(--gold), var(--blue));
-    margin: 10px 0 16px;
-    border-radius: 2px;
-  }
+/* ── Buttons ── */
+.btn {
+  padding: 10px 22px; border: none; border-radius: 12px;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary  { background: var(--dark); color: #fff; }
+.btn-primary:hover:not(:disabled)  { background: var(--blue); transform: scale(1.04); }
+.btn-gold     { background: var(--gold); color: var(--dark); }
+.btn-gold:hover:not(:disabled)     { background: var(--gold-light); transform: scale(1.04); }
+.btn-outline  { background: #eee; color: #555; }
+.btn-outline:hover  { background: #ddd; }
+.btn-purple   { background: var(--purple); color: #fff; }
+.btn-purple:hover   { background: #6c3483; transform: scale(1.04); }
+.btn-danger   { background: var(--red); color: #fff; }
+.btn-danger:hover   { background: #c0392b; }
+.btn-green    { background: var(--green); color: #fff; }
+.btn-green:hover    { background: #27ae60; transform: scale(1.04); }
 
-  .game-title {
-    text-align: center;
-    font-size: 22px;
-    font-weight: 900;
-    color: #8b0000;
-    margin-bottom: 4px;
-  }
+.btn-block    { width: 100%; }
+.btn-lg       { padding: 13px 28px; font-size: 16px; }
 
-  .game-subtitle {
-    text-align: center;
-    font-size: 13px;
-    color: #555;
-    margin-bottom: 18px;
-    line-height: 1.6;
-  }
+/* ── Timer ── */
+.timer-area {
+  display: flex; align-items: center;
+  justify-content: center; gap: 12px;
+  margin-bottom: 14px;
+}
+.timer-svg { width: 60px; height: 60px; transform: rotate(-90deg); }
+.timer-svg circle { fill: none; stroke-width: 5; stroke-linecap: round; }
+.timer-bg-circle { stroke: #e0e0e0; }
+.timer-fg-circle {
+  stroke: var(--green);
+  stroke-dasharray: 163;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke .3s;
+}
+.timer-text {
+  font-size: 34px; font-weight: 900;
+  color: var(--dark); min-width: 76px; text-align: center;
+  transition: color .3s;
+}
+.timer-text.warn   { color: var(--orange); }
+.timer-text.danger { color: var(--red); animation: blink .5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.5} }
 
-  /* ── Player name ── */
-  .name-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-    align-items: center;
-  }
+.timer-info { font-size: 12px; color: #888; text-align: center; }
 
-  .name-label {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--dark);
-    white-space: nowrap;
-  }
+/* ── Game meta bar ── */
+.game-meta {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 12px;
+  font-size: 13px; font-weight: 700; color: #555;
+}
+.game-meta .player-tag {
+  background: var(--dark); color: #fff;
+  padding: 4px 12px; border-radius: 20px; font-size: 13px;
+}
+.game-meta .diff-tag {
+  padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700;
+}
+.game-meta .diff-tag.easy   { background: #d5f5e3; color: #1e8449; }
+.game-meta .diff-tag.medium { background: #fef9e7; color: #b7770d; }
+.game-meta .diff-tag.hard   { background: #fdedec; color: #c0392b; }
 
-  .name-input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 2px solid #ddd;
-    border-radius: 10px;
-    font-family: 'Tajawal', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--dark);
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .name-input:focus { border-color: var(--blue); }
+/* ── Grid ── */
+.grid-wrapper {
+  display: flex; justify-content: center;
+  margin-bottom: 16px;
+}
+.grid-outer {
+  display: grid;
+  grid-template-columns: repeat(4, 68px);
+  grid-template-rows: repeat(4, 68px);
+  gap: 4px;
+  background: var(--dark);
+  padding: 6px; border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.cell {
+  width: 68px; height: 68px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 900;
+}
+.cell.corner  { background: transparent; }
+.cell.sum     { background: var(--gold); color: var(--dark); font-size: 26px; }
+.cell.ic      { background: var(--blue-light); position: relative; }
+.cell input {
+  width: 100%; height: 100%; border: none;
+  background: transparent; text-align: center;
+  font-size: 24px; font-weight: 900;
+  font-family: 'Tajawal', sans-serif;
+  color: var(--dark); outline: none; cursor: pointer;
+}
+.cell input:focus { background: rgba(74,127,165,0.2); border-radius: 8px; }
+.cell.correct { background: #b6f0c8 !important; }
+.cell.wrong   { background: #ffc8c8 !important; }
+.cell.fixed input { color: var(--blue); }
 
-  /* ── Difficulty ── */
-  .diff-row {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-bottom: 14px;
-  }
+/* ── Message ── */
+.msg {
+  text-align: center; font-size: 16px; font-weight: 700;
+  min-height: 24px; margin-bottom: 12px; transition: all .3s;
+}
+.msg.ok      { color: var(--green); }
+.msg.err     { color: var(--red); }
+.msg.timeout { color: var(--orange); }
 
-  .diff-btn {
-    padding: 7px 18px;
-    border-radius: 20px;
-    border: 2px solid #ddd;
-    background: #fff;
-    font-family: 'Tajawal', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    color: #555;
-    transition: all 0.2s;
-  }
-  .diff-btn.active {
-    background: var(--dark);
-    color: #fff;
-    border-color: var(--dark);
-  }
-  .diff-btn:hover:not(.active) { background: #f0f0f0; }
+/* ── Controls row ── */
+.controls {
+  display: flex; gap: 8px;
+  justify-content: center; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
 
-  /* ── Timer ── */
-  .timer-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
+/* ── Score bar ── */
+.score-bar {
+  display: flex; justify-content: center;
+  gap: 28px; font-size: 14px; font-weight: 700; color: #555;
+}
+.score-bar strong { color: var(--dark); font-size: 20px; }
 
-  .timer-display {
-    font-size: 32px;
-    font-weight: 900;
-    color: var(--dark);
-    min-width: 72px;
-    text-align: center;
-    transition: color 0.3s;
-  }
-  .timer-display.warning { color: #e67e22; }
-  .timer-display.danger  { color: var(--red); animation: pulse 0.6s infinite; }
+/* ── Result screen ── */
+.result-icon { text-align: center; font-size: 64px; margin-bottom: 8px; }
+.result-title {
+  text-align: center; font-size: 26px; font-weight: 900;
+  margin-bottom: 6px;
+}
+.result-title.win  { color: var(--green); }
+.result-title.lose { color: var(--red); }
+.result-sub { text-align: center; font-size: 14px; color: #666; margin-bottom: 20px; }
 
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
-  }
+.stats-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-bottom: 20px;
+}
+.stat-box {
+  background: #f7f7f7; border-radius: 14px;
+  padding: 12px 8px; text-align: center;
+}
+.stat-box .stat-val {
+  font-size: 26px; font-weight: 900; color: var(--dark);
+}
+.stat-box .stat-lbl {
+  font-size: 12px; color: #888; font-weight: 700; margin-top: 2px;
+}
 
-  .timer-ring {
-    width: 56px;
-    height: 56px;
-    transform: rotate(-90deg);
-  }
-  .timer-ring circle {
-    fill: none;
-    stroke-width: 5;
-    stroke-linecap: round;
-    transition: stroke-dashoffset 1s linear, stroke 0.3s;
-  }
-  .timer-ring .bg-circle { stroke: #e0e0e0; }
-  .timer-ring .fg-circle {
-    stroke: var(--green);
-    stroke-dasharray: 157;
-    stroke-dashoffset: 0;
-  }
+.result-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.result-btns .btn { flex: 1; min-width: 110px; }
 
-  /* ── Grid ── */
-  .grid-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 16px;
-  }
+/* ══════════════════════════════════════════════════
+   LEADERBOARD MODAL
+══════════════════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.62);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+}
+.overlay.open { opacity: 1; pointer-events: all; }
 
-  .grid-outer {
-    display: grid;
-    grid-template-columns: repeat(4, 70px);
-    grid-template-rows: repeat(4, 70px);
-    gap: 4px;
-    background: var(--dark);
-    padding: 6px;
-    border-radius: 14px;
-    box-shadow: var(--shadow);
-  }
+.modal {
+  background: #fff; border-radius: 22px;
+  padding: 26px 22px; max-width: 440px; width: 100%;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+  border: 3px solid var(--blue);
+  transform: translateY(22px);
+  transition: transform .25s;
+  max-height: 90vh; overflow-y: auto;
+}
+.overlay.open .modal { transform: translateY(0); }
 
-  .cell {
-    width: 70px;
-    height: 70px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: 900;
-    font-family: 'Tajawal', sans-serif;
-  }
+.modal-title {
+  text-align: center; font-size: 22px; font-weight: 900;
+  color: var(--dark); margin-bottom: 16px;
+}
 
-  .cell.corner   { background: transparent; }
-  .cell.sum      { background: var(--gold); color: var(--dark); font-size: 26px; }
-  .cell.input-cell { background: var(--blue-light); position: relative; }
+.lb-filters {
+  display: flex; gap: 6px; justify-content: center;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.lb-filter {
+  padding: 5px 14px; border-radius: 20px;
+  border: 2px solid #ddd; background: #fff;
+  font-family: 'Tajawal', sans-serif;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; color: #555; transition: all .2s;
+}
+.lb-filter.active { background: var(--dark); color: #fff; border-color: var(--dark); }
 
-  .cell input {
-    width: 100%;
-    height: 100%;
-    border: none;
-    background: transparent;
-    text-align: center;
-    font-size: 24px;
-    font-weight: 900;
-    font-family: 'Tajawal', sans-serif;
-    color: var(--dark);
-    outline: none;
-    cursor: pointer;
-  }
-  .cell input:focus { background: rgba(74,127,165,0.22); border-radius: 8px; }
-  .cell.correct { background: #b6f0c8 !important; }
-  .cell.wrong   { background: #ffc8c8 !important; }
+.lb-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px;
+}
+.lb-table th {
+  background: var(--dark); color: #fff;
+  padding: 8px 6px; font-weight: 700; text-align: center;
+}
+.lb-table td {
+  padding: 8px 6px; text-align: center;
+  border-bottom: 1px solid #eee; color: #333; font-weight: 700;
+}
+.lb-table tr:nth-child(even) td { background: #f9f9f9; }
+.lb-table tr.top1 td { background: #fffde7; }
+.lb-table tr.top2 td { background: #f5f5f5; }
+.lb-table tr.top3 td { background: #fff3e0; }
 
-  /* ── Message ── */
-  .message {
-    text-align: center;
-    font-size: 17px;
-    font-weight: 700;
-    min-height: 26px;
-    margin-bottom: 12px;
-    transition: all 0.3s;
-  }
-  .message.success { color: var(--green); }
-  .message.error   { color: var(--red); }
-  .message.timeout { color: #e67e22; }
+.medal { font-size: 17px; }
+.badge {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 10px; font-size: 12px; font-weight: 700;
+}
+.badge-easy   { background: #d5f5e3; color: #1e8449; }
+.badge-medium { background: #fef9e7; color: #b7770d; }
+.badge-hard   { background: #fdedec; color: #c0392b; }
+.badge-student { background: #e8f4fd; color: #1a5276; }
+.badge-teacher { background: #f4ecf7; color: #7d3c98; }
+.badge-visitor { background: #eafaf1; color: #1e8449; }
 
-  /* ── Controls ── */
-  .controls {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
+.lb-loading { text-align: center; padding: 30px; color: #aaa; font-size: 14px; }
+.lb-empty   { text-align: center; padding: 30px; color: #aaa; font-size: 13px; }
 
-  .btn {
-    padding: 9px 20px;
-    border: none;
-    border-radius: 12px;
-    font-family: 'Tajawal', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn-primary { background: var(--dark); color: #fff; }
-  .btn-primary:hover { background: var(--blue); transform: scale(1.04); }
-  .btn-check { background: var(--gold); color: var(--dark); }
-  .btn-check:hover { background: var(--gold-light); transform: scale(1.04); }
-  .btn-clear { background: #eee; color: #555; }
-  .btn-clear:hover { background: #ddd; }
-  .btn-board { background: #6c3483; color: #fff; }
-  .btn-board:hover { background: #7d3c98; transform: scale(1.04); }
+.modal-footer {
+  display: flex; gap: 8px;
+  justify-content: center; margin-top: 18px;
+}
 
-  /* ── Score bar ── */
-  .score-bar {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    font-size: 14px;
-    font-weight: 700;
-    color: #555;
-  }
-  .score-bar span { color: var(--dark); font-size: 18px; }
+.firebase-note {
+  text-align: center; font-size: 11px; color: #aaa;
+  margin-top: 12px; line-height: 1.5;
+}
 
-  /* ── Leaderboard modal ── */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s;
-  }
-  .modal-overlay.open {
-    opacity: 1;
-    pointer-events: all;
-  }
+/* ══════════════════════════════════════════════════
+   CONFETTI
+══════════════════════════════════════════════════ */
+#confetti {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 999; overflow: hidden;
+}
+.cp {
+  position: absolute; opacity: 0;
+  animation: cfall linear forwards;
+}
+@keyframes cfall {
+  0%   { transform: translateY(-30px) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(110vh) rotate(900deg); opacity: 0; }
+}
 
-  .modal {
-    background: #fff;
-    border-radius: 20px;
-    padding: 28px 24px;
-    max-width: 400px;
-    width: 100%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    border: 3px solid var(--blue);
-    transform: translateY(20px);
-    transition: transform 0.25s;
-  }
-  .modal-overlay.open .modal { transform: translateY(0); }
-
-  .modal-title {
-    text-align: center;
-    font-size: 22px;
-    font-weight: 900;
-    color: var(--dark);
-    margin-bottom: 18px;
-  }
-
-  .leaderboard-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-  }
-  .leaderboard-table th {
-    background: var(--dark);
-    color: #fff;
-    padding: 8px 10px;
-    font-weight: 700;
-    text-align: center;
-  }
-  .leaderboard-table td {
-    padding: 8px 10px;
-    text-align: center;
-    border-bottom: 1px solid #eee;
-    color: #333;
-    font-weight: 700;
-  }
-  .leaderboard-table tr:nth-child(even) td { background: #f7f7f7; }
-  .leaderboard-table tr:first-child td { background: #fff9e0; }
-
-  .rank-medal { font-size: 18px; }
-
-  .modal-footer {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 18px;
-  }
-
-  .btn-danger { background: var(--red); color: #fff; }
-  .btn-danger:hover { background: #c0392b; }
-  .btn-close-modal { background: #eee; color: #555; }
-  .btn-close-modal:hover { background: #ddd; }
-
-  .empty-board {
-    text-align: center;
-    color: #aaa;
-    font-size: 14px;
-    padding: 20px 0;
-  }
-
-  /* ── Confetti ── */
-  .confetti-container {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 999;
-    overflow: hidden;
-  }
-
-  .confetti-piece {
-    position: absolute;
-    opacity: 0;
-    animation: confettiFall 2.2s ease-in forwards;
-  }
-
-  @keyframes confettiFall {
-    0%   { transform: translateY(-40px) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(105vh) rotate(800deg); opacity: 0; }
-  }
-
-  /* ── Footer ── */
-  .footer {
-    text-align: center;
-    font-size: 12px;
-    color: rgba(255,255,255,0.4);
-    z-index: 1;
-    position: relative;
-  }
+/* ── Footer ── */
+.footer {
+  text-align: center; font-size: 12px;
+  color: rgba(255,255,255,0.38);
+  z-index: 1; position: relative;
+}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════
+<!-- ════════════════════════════════════════════════════
      MAIN CARD
-═══════════════════════════════════════ -->
-<div class="card">
+════════════════════════════════════════════════════ -->
+<div class="card" id="mainCard">
 
-  <!-- Header -->
-  <div class="header">
-    <div>
-      <div class="school-name">مدارس الأرقم</div>
-      <div class="school-sub">وحدة الموهبة والذكاء الاصطناعي</div>
+  <!-- ── School Header (shown on all screens) ── -->
+  <div class="school-header">
+    <div class="school-text">
+      <div class="name">مدارس الأرقم</div>
+      <div class="sub">وحدة الموهبة والذكاء الاصطناعي</div>
     </div>
-    <div class="logo">🏫</div>
+    <div class="school-logo">🏫</div>
   </div>
   <div class="divider"></div>
 
-  <div class="game-title">تمرين مهارات حسابية (عبقرينو)</div>
-  <div class="game-subtitle">
-    ضع الأرقام من 1 إلى 9 في الخانات الزرقاء<br>
-    بحيث يصح مجموع كل صف وعمود 🧠
+  <!-- ════════════
+       SCREEN 1: WELCOME
+  ════════════ -->
+  <div id="s-welcome" class="screen active">
+    <div class="game-title">عبقرينو 🧠</div>
+    <div class="game-desc">
+      ضع الأرقام من 1 إلى 9 في الشبكة<br>
+      بحيث يصح مجموع كل صف وعمود
+    </div>
+
+    <label class="field-label">اسمك</label>
+    <input class="text-input" id="inputName" type="text"
+           placeholder="أدخل اسمك هنا..." maxlength="24"
+           oninput="validateWelcome()">
+
+    <label class="field-label">أنت…</label>
+    <div class="role-grid">
+      <div class="role-card" onclick="selectRole('student',this)">
+        <span class="icon">👨‍🎓</span>
+        <span class="label">طالب</span>
+      </div>
+      <div class="role-card" onclick="selectRole('teacher',this)">
+        <span class="icon">👨‍🏫</span>
+        <span class="label">معلم</span>
+      </div>
+      <div class="role-card" onclick="selectRole('visitor',this)">
+        <span class="icon">👤</span>
+        <span class="label">زائر</span>
+      </div>
+    </div>
+
+    <label class="field-label">المستوى</label>
+    <div class="diff-row">
+      <button class="diff-btn active" data-d="easy"   onclick="pickDiff('easy',this)">سهل ⭐</button>
+      <button class="diff-btn"        data-d="medium" onclick="pickDiff('medium',this)">متوسط ⭐⭐</button>
+      <button class="diff-btn"        data-d="hard"   onclick="pickDiff('hard',this)">صعب ⭐⭐⭐</button>
+    </div>
+
+    <button class="btn btn-primary btn-block btn-lg" id="btnStart"
+            onclick="startGame()" disabled>
+      ابدأ اللعبة 🚀
+    </button>
+
+    <div style="margin-top:14px; text-align:center;">
+      <button class="btn btn-purple" onclick="openLeaderboard()">🏆 لوحة الصدارة العالمية</button>
+    </div>
   </div>
 
-  <!-- Player name -->
-  <div class="name-row">
-    <span class="name-label">اسم اللاعب:</span>
-    <input class="name-input" id="playerName" type="text" placeholder="أدخل اسمك هنا..." maxlength="20">
+  <!-- ════════════
+       SCREEN 2: GAME
+  ════════════ -->
+  <div id="s-game" class="screen">
+
+    <!-- Meta bar -->
+    <div class="game-meta">
+      <span class="player-tag" id="metaPlayer">—</span>
+      <span class="diff-tag"   id="metaDiff">—</span>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer-area">
+      <svg class="timer-svg" viewBox="0 0 60 60">
+        <circle class="timer-bg-circle" cx="30" cy="30" r="26"/>
+        <circle class="timer-fg-circle" id="timerArc" cx="30" cy="30" r="26"/>
+      </svg>
+      <div>
+        <div class="timer-text" id="timerDisp">2:00</div>
+        <div class="timer-info" id="timerInfo">ثانية متبقية</div>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid-wrapper">
+      <div class="grid-outer" id="grid"></div>
+    </div>
+
+    <!-- Message -->
+    <div class="msg" id="gameMsg"></div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn btn-primary" onclick="newPuzzle()">🔀 لغز جديد</button>
+      <button class="btn btn-gold"    onclick="checkAnswers()">✅ تحقق</button>
+      <button class="btn btn-outline" onclick="clearInputs()">🗑️ مسح</button>
+      <button class="btn btn-purple"  onclick="openLeaderboard()">🏆</button>
+    </div>
+
+    <!-- Score bar -->
+    <div class="score-bar">
+      <div>النجاحات <strong id="wins">0</strong></div>
+      <div>المحاولات <strong id="attempts">0</strong></div>
+    </div>
+
+    <div style="margin-top:14px; text-align:center;">
+      <button class="btn btn-outline" onclick="goWelcome()">← العودة</button>
+    </div>
   </div>
 
-  <!-- Difficulty -->
-  <div class="diff-row">
-    <button class="diff-btn active" onclick="setDifficulty('easy', this)">سهل ⭐</button>
-    <button class="diff-btn" onclick="setDifficulty('medium', this)">متوسط ⭐⭐</button>
-    <button class="diff-btn" onclick="setDifficulty('hard', this)">صعب ⭐⭐⭐</button>
+  <!-- ════════════
+       SCREEN 3: RESULT
+  ════════════ -->
+  <div id="s-result" class="screen">
+    <div class="result-icon" id="resultIcon">🎉</div>
+    <div class="result-title" id="resultTitle">ممتاز!</div>
+    <div class="result-sub"   id="resultSub"></div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="rTime">—</div>
+        <div class="stat-lbl">الوقت (ثانية)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="rDiff">—</div>
+        <div class="stat-lbl">المستوى</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="rWins">—</div>
+        <div class="stat-lbl">إجمالي الفوز</div>
+      </div>
+    </div>
+
+    <div class="result-btns">
+      <button class="btn btn-primary" onclick="playAgain()">🔄 العب مجدداً</button>
+      <button class="btn btn-green"   onclick="openLeaderboard()">🏆 الصدارة</button>
+      <button class="btn btn-outline" onclick="goWelcome()">🏠 الرئيسية</button>
+    </div>
   </div>
 
-  <!-- Timer -->
-  <div class="timer-bar">
-    <svg class="timer-ring" viewBox="0 0 60 60">
-      <circle class="bg-circle" cx="30" cy="30" r="25"/>
-      <circle class="fg-circle" id="timerArc" cx="30" cy="30" r="25"/>
-    </svg>
-    <div class="timer-display" id="timerDisplay">2:00</div>
-  </div>
+</div><!-- end .card -->
 
-  <!-- Grid -->
-  <div class="grid-wrapper">
-    <div class="grid-outer" id="grid"></div>
-  </div>
-
-  <!-- Message -->
-  <div class="message" id="message"></div>
-
-  <!-- Controls -->
-  <div class="controls">
-    <button class="btn btn-primary" onclick="newPuzzle()">🔀 لغز جديد</button>
-    <button class="btn btn-check" onclick="checkAnswers()">✅ تحقق</button>
-    <button class="btn btn-clear" onclick="clearInputs()">🗑️ مسح</button>
-    <button class="btn btn-board" onclick="openLeaderboard()">🏆 الصدارة</button>
-  </div>
-
-  <!-- Score -->
-  <div class="score-bar">
-    <div>النجاحات: <span id="wins">0</span></div>
-    <div>المحاولات: <span id="attempts">0</span></div>
-  </div>
-
-</div>
-
-<!-- ═══════════════════════════════════════
+<!-- ════════════════════════════════════════════════════
      LEADERBOARD MODAL
-═══════════════════════════════════════ -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeLeaderboardOutside(event)">
+════════════════════════════════════════════════════ -->
+<div class="overlay" id="lbOverlay" onclick="closeOnOutside(event)">
   <div class="modal">
-    <div class="modal-title">🏆 لوحة الصدارة</div>
-    <div id="leaderboardContent"></div>
+    <div class="modal-title">🏆 لوحة الصدارة العالمية</div>
+
+    <div class="lb-filters">
+      <button class="lb-filter active" onclick="setLbFilter('all',this)">الكل</button>
+      <button class="lb-filter"        onclick="setLbFilter('easy',this)">سهل</button>
+      <button class="lb-filter"        onclick="setLbFilter('medium',this)">متوسط</button>
+      <button class="lb-filter"        onclick="setLbFilter('hard',this)">صعب</button>
+    </div>
+
+    <div id="lbContent"><div class="lb-loading">⏳ جاري التحميل…</div></div>
+
+    <div class="firebase-note" id="firebaseNote"></div>
+
     <div class="modal-footer">
-      <button class="btn btn-danger" onclick="clearLeaderboard()">🗑️ مسح الكل</button>
-      <button class="btn btn-close-modal" onclick="closeLeaderboard()">إغلاق</button>
+      <button class="btn btn-outline"  onclick="closeLeaderboard()">إغلاق</button>
     </div>
   </div>
 </div>
 
-<!-- Confetti -->
-<div class="confetti-container" id="confetti"></div>
+<!-- Confetti layer -->
+<div id="confetti"></div>
 
 <div class="footer">مدارس الأرقم · وحدة الموهبة والذكاء الاصطناعي</div>
 
-<!-- ═══════════════════════════════════════
+<!-- ════════════════════════════════════════════════════
      SCRIPT
-═══════════════════════════════════════ -->
+════════════════════════════════════════════════════ -->
 <script>
-// ─── Constants ────────────────────────────────────────
-const HINTS     = { easy: 4, medium: 2, hard: 1 };
-const DURATION  = { easy: 120, medium: 90, hard: 60 };
-const DIFF_LABEL = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
-const MEDALS    = ['🥇','🥈','🥉'];
-const COLORS    = ['#f5c842','#4a7fa5','#2ecc71','#e74c3c','#9b59b6','#e67e22','#1abc9c'];
+/* ══════════════════════════════════════════════════
+   ⚙️  FIREBASE CONFIG
+   ──────────────────────────────────────────────────
+   1. اذهب إلى https://console.firebase.google.com
+   2. أنشئ مشروعاً جديداً أو اختر مشروعاً موجوداً
+   3. أضف تطبيق Web واحصل على بيانات الإعداد
+   4. فعّل Realtime Database في Firebase Console
+   5. ضع Rules التالية في قاعدة البيانات:
+      {
+        "rules": {
+          "scores": {
+            ".read": true,
+            ".write": true
+          }
+        }
+      }
+   6. استبدل القيم أدناه بقيمك الحقيقية
+══════════════════════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL:       "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
 
-// ─── State ────────────────────────────────────────────
+/* ══════════════════════════════════════════════════
+   FIREBASE INIT
+══════════════════════════════════════════════════ */
+let db = null;
+let firebaseReady = false;
+
+(function initFirebase() {
+  try {
+    if (FIREBASE_CONFIG.apiKey === "YOUR_API_KEY") {
+      console.warn("Firebase: لم يتم إعداد بيانات Firebase – سيتم استخدام التخزين المحلي.");
+      return;
+    }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    firebaseReady = true;
+    console.log("Firebase: متصل ✅");
+  } catch(e) {
+    console.warn("Firebase: فشل الاتصال –", e.message);
+  }
+})();
+
+/* ══════════════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════════════ */
+const HINTS    = { easy: 4, medium: 2, hard: 1 };
+const DURATION = { easy: 120, medium: 90, hard: 60 };
+const LABELS   = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' };
+const ROLES    = { student: 'طالب', teacher: 'معلم', visitor: 'زائر' };
+const MEDALS   = ['🥇','🥈','🥉'];
+const CONFETTI_COLORS = ['#f5c842','#4a7fa5','#2ecc71','#e74c3c','#9b59b6','#e67e22','#1abc9c','#3498db'];
+
+/* ══════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════ */
+let playerName = '';
+let playerRole = '';
+let difficulty = 'easy';
 let solution   = [];
 let rowSums    = [];
 let colSums    = [];
 let wins       = 0;
 let attempts   = 0;
-let difficulty = 'easy';
-let timerMax   = 120;
 let timeLeft   = 120;
+let timerMax   = 120;
 let timerID    = null;
 let gameOver   = false;
+let lbFilter   = 'all';
+let allScores  = [];
 
-// ─── Shuffle ──────────────────────────────────────────
+/* ══════════════════════════════════════════════════
+   WELCOME SCREEN
+══════════════════════════════════════════════════ */
+function selectRole(r, el) {
+  playerRole = r;
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  validateWelcome();
+}
+
+function pickDiff(d, el) {
+  difficulty = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function validateWelcome() {
+  const name = document.getElementById('inputName').value.trim();
+  document.getElementById('btnStart').disabled = !(name && playerRole);
+}
+
+function startGame() {
+  playerName = document.getElementById('inputName').value.trim();
+  if (!playerName || !playerRole) return;
+  wins = 0; attempts = 0;
+  document.getElementById('wins').textContent     = 0;
+  document.getElementById('attempts').textContent = 0;
+
+  // Meta bar
+  document.getElementById('metaPlayer').textContent = playerName;
+  const dt = document.getElementById('metaDiff');
+  dt.textContent = LABELS[difficulty];
+  dt.className   = `diff-tag ${difficulty}`;
+
+  showScreen('s-game');
+  newPuzzle();
+}
+
+function goWelcome() {
+  stopTimer();
+  showScreen('s-welcome');
+}
+
+/* ══════════════════════════════════════════════════
+   SCREEN NAVIGATION
+══════════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ══════════════════════════════════════════════════
+   PUZZLE GENERATION
+══════════════════════════════════════════════════ */
 function shuffle(a) {
   const b = [...a];
-  for (let i = b.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [b[j], b[i]];
+  for (let i = b.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [b[i],b[j]] = [b[j],b[i]];
   }
   return b;
 }
 
-// ─── Generate puzzle ──────────────────────────────────
 function generatePuzzle() {
   const nums = shuffle([1,2,3,4,5,6,7,8,9]);
-  solution = [
-    [nums[0], nums[1], nums[2]],
-    [nums[3], nums[4], nums[5]],
-    [nums[6], nums[7], nums[8]],
-  ];
-  rowSums = solution.map(row => row.reduce((a,b) => a+b, 0));
-  colSums = [0,1,2].map(c => solution.reduce((a,r) => a + r[c], 0));
+  solution = [[nums[0],nums[1],nums[2]],[nums[3],nums[4],nums[5]],[nums[6],nums[7],nums[8]]];
+  rowSums  = solution.map(r => r.reduce((a,b)=>a+b,0));
+  colSums  = [0,1,2].map(c => solution.reduce((a,r)=>a+r[c],0));
 }
 
-// ─── Render grid ──────────────────────────────────────
-function renderGrid(hints) {
-  const grid = document.getElementById('grid');
+/* ══════════════════════════════════════════════════
+   RENDER GRID
+══════════════════════════════════════════════════ */
+function renderGrid() {
+  const grid   = document.getElementById('grid');
   grid.innerHTML = '';
-
-  const hintSet = new Set();
-  const positions = shuffle([0,1,2,3,4,5,6,7,8]);
-  for (let i = 0; i < hints; i++) hintSet.add(positions[i]);
+  const hints  = HINTS[difficulty];
+  const hintSet = new Set(shuffle([0,1,2,3,4,5,6,7,8]).slice(0,hints));
 
   for (let r = 0; r < 4; r++) {
     for (let c = 0; c < 4; c++) {
@@ -575,223 +760,292 @@ function renderGrid(hints) {
       cell.className = 'cell';
 
       if (r < 3 && c < 3) {
-        const idx = r * 3 + c;
-        cell.classList.add('input-cell');
-        cell.dataset.r = r;
-        cell.dataset.c = c;
+        const idx = r*3+c;
+        cell.classList.add('ic');
+        cell.dataset.r = r; cell.dataset.c = c;
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.min = 1; inp.max = 9;
 
         if (hintSet.has(idx)) {
-          const inp = document.createElement('input');
-          inp.type = 'number';
           inp.value = solution[r][c];
           inp.readOnly = true;
-          inp.style.color = 'var(--blue)';
-          cell.dataset.fixed = 'true';
-          cell.appendChild(inp);
+          cell.classList.add('fixed');
+          cell.dataset.fixed = '1';
         } else {
-          const inp = document.createElement('input');
-          inp.type = 'number';
-          inp.min = 1;
-          inp.max = 9;
           inp.placeholder = '?';
-          inp.addEventListener('input', () => {
-            if (!gameOver) liveCheck(inp, r, c);
-          });
-          cell.appendChild(inp);
+          inp.addEventListener('input', () => { if (!gameOver) liveCheck(inp,r,c); });
         }
-      } else if (r === 3 && c < 3) {
+        cell.appendChild(inp);
+      } else if (r===3 && c<3) {
         cell.classList.add('sum');
         cell.textContent = colSums[c];
-      } else if (c === 3 && r < 3) {
+      } else if (c===3 && r<3) {
         cell.classList.add('sum');
         cell.textContent = rowSums[r];
       } else {
         cell.classList.add('corner');
       }
-
       grid.appendChild(cell);
     }
   }
 }
 
-// ─── Live colour feedback ─────────────────────────────
+/* ══════════════════════════════════════════════════
+   LIVE CHECK
+══════════════════════════════════════════════════ */
 function liveCheck(inp, r, c) {
-  const val  = parseInt(inp.value);
+  const v = parseInt(inp.value);
   const cell = inp.parentElement;
-  cell.classList.remove('correct', 'wrong');
-  if (!isNaN(val)) {
-    cell.classList.add(val === solution[r][c] ? 'correct' : 'wrong');
-  }
+  cell.classList.remove('correct','wrong');
+  if (!isNaN(v)) cell.classList.add(v===solution[r][c]?'correct':'wrong');
 }
 
-// ─── Check all ────────────────────────────────────────
+/* ══════════════════════════════════════════════════
+   CHECK ALL
+══════════════════════════════════════════════════ */
 function checkAnswers() {
   if (gameOver) return;
   attempts++;
   document.getElementById('attempts').textContent = attempts;
 
-  const cells = document.querySelectorAll('.cell.input-cell');
-  let allCorrect = true;
-
-  cells.forEach(cell => {
+  let allOk = true;
+  document.querySelectorAll('.cell.ic').forEach(cell => {
     if (cell.dataset.fixed) return;
-    const r   = parseInt(cell.dataset.r);
-    const c   = parseInt(cell.dataset.c);
-    const val = parseInt(cell.querySelector('input').value);
-    cell.classList.remove('correct', 'wrong');
-    if (val === solution[r][c]) {
-      cell.classList.add('correct');
-    } else {
-      cell.classList.add('wrong');
-      allCorrect = false;
-    }
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    const v = parseInt(cell.querySelector('input').value);
+    cell.classList.remove('correct','wrong');
+    if (v===solution[r][c]) cell.classList.add('correct');
+    else { cell.classList.add('wrong'); allOk = false; }
   });
 
-  const msg = document.getElementById('message');
-  if (allCorrect) {
+  const msg = document.getElementById('gameMsg');
+  if (allOk) {
     stopTimer();
     wins++;
     document.getElementById('wins').textContent = wins;
-    msg.textContent = '🎉 ممتاز! أجبت بشكل صحيح!';
-    msg.className   = 'message success';
-    launchConfetti();
-    saveScore(timerMax - timeLeft);
+    msg.textContent = '🎉 ممتاز! إجابة صحيحة!';
+    msg.className = 'msg ok';
     gameOver = true;
+    const timeTaken = timerMax - timeLeft;
+    launchConfetti();
+    saveScore(timeTaken);
+    setTimeout(() => showResult(true, timeTaken), 1200);
   } else {
     msg.textContent = '❌ بعض الإجابات خاطئة، حاول مجدداً!';
-    msg.className   = 'message error';
+    msg.className = 'msg err';
   }
 }
 
-// ─── New puzzle ───────────────────────────────────────
+/* ══════════════════════════════════════════════════
+   NEW PUZZLE / CLEAR
+══════════════════════════════════════════════════ */
 function newPuzzle() {
   stopTimer();
   generatePuzzle();
-  renderGrid(HINTS[difficulty]);
-  document.getElementById('message').textContent = '';
-  document.getElementById('message').className = 'message';
+  renderGrid();
+  setMsg('','');
   gameOver = false;
   startTimer();
 }
 
-// ─── Clear inputs ─────────────────────────────────────
 function clearInputs() {
   if (gameOver) return;
-  document.querySelectorAll('.cell.input-cell:not([data-fixed]) input').forEach(inp => {
+  document.querySelectorAll('.cell.ic:not([data-fixed]) input').forEach(inp => {
     inp.value = '';
-    inp.parentElement.classList.remove('correct', 'wrong');
+    inp.parentElement.classList.remove('correct','wrong');
   });
-  document.getElementById('message').textContent = '';
+  setMsg('','');
 }
 
-// ─── Difficulty ───────────────────────────────────────
-function setDifficulty(d, btn) {
-  difficulty = d;
-  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  newPuzzle();
+function setMsg(text, cls) {
+  const m = document.getElementById('gameMsg');
+  m.textContent = text; m.className = 'msg' + (cls?' '+cls:'');
 }
 
-// ─── Timer ────────────────────────────────────────────
+/* ══════════════════════════════════════════════════
+   TIMER
+══════════════════════════════════════════════════ */
+const CIRCUM = 2 * Math.PI * 26; // r=26
+
 function startTimer() {
-  timerMax  = DURATION[difficulty];
-  timeLeft  = timerMax;
+  timerMax = DURATION[difficulty];
+  timeLeft = timerMax;
   updateTimerUI();
   timerID = setInterval(tick, 1000);
 }
 
-function stopTimer() {
-  clearInterval(timerID);
-  timerID = null;
-}
+function stopTimer() { clearInterval(timerID); timerID = null; }
 
 function tick() {
-  timeLeft--;
+  timeLeft = Math.max(0, timeLeft - 1);
   updateTimerUI();
   if (timeLeft <= 0) {
     stopTimer();
     gameOver = true;
-    document.getElementById('message').textContent = '⏰ انتهى الوقت! حاول مرة أخرى.';
-    document.getElementById('message').className   = 'message timeout';
+    setMsg('⏰ انتهى الوقت! حاول مرة أخرى.','timeout');
     attempts++;
     document.getElementById('attempts').textContent = attempts;
+    setTimeout(() => showResult(false, timerMax), 1400);
   }
 }
 
 function updateTimerUI() {
-  const mins = Math.floor(timeLeft / 60);
-  const secs = timeLeft % 60;
-  const disp = document.getElementById('timerDisplay');
-  disp.textContent = mins + ':' + String(secs).padStart(2, '0');
+  const m = Math.floor(timeLeft/60), s = timeLeft%60;
+  document.getElementById('timerDisp').textContent =
+    m + ':' + String(s).padStart(2,'0');
 
-  const ratio     = timeLeft / timerMax;
-  const arc       = document.getElementById('timerArc');
-  const circumf   = 2 * Math.PI * 25; // r=25
-  arc.style.strokeDashoffset = circumf * (1 - ratio);
+  const ratio = timeLeft / timerMax;
+  const arc   = document.getElementById('timerArc');
+  arc.style.strokeDasharray  = CIRCUM;
+  arc.style.strokeDashoffset = CIRCUM * (1 - ratio);
 
+  const disp = document.getElementById('timerDisp');
   if (ratio > 0.4) {
     arc.style.stroke = 'var(--green)';
-    disp.className = 'timer-display';
+    disp.className = 'timer-text';
   } else if (ratio > 0.2) {
-    arc.style.stroke = '#e67e22';
-    disp.className = 'timer-display warning';
+    arc.style.stroke = 'var(--orange)';
+    disp.className = 'timer-text warn';
   } else {
     arc.style.stroke = 'var(--red)';
-    disp.className = 'timer-display danger';
+    disp.className = 'timer-text danger';
   }
-
-  // initialise dasharray properly
-  arc.style.strokeDasharray = circumf;
 }
 
-// ─── Leaderboard ─────────────────────────────────────
-function getLeaderboard() {
+/* ══════════════════════════════════════════════════
+   RESULT SCREEN
+══════════════════════════════════════════════════ */
+function showResult(won, timeTaken) {
+  document.getElementById('resultIcon').textContent  = won ? '🎉' : '😔';
+  document.getElementById('resultTitle').textContent = won ? 'ممتاز!' : 'انتهى الوقت!';
+  document.getElementById('resultTitle').className   = 'result-title ' + (won?'win':'lose');
+  document.getElementById('resultSub').textContent   =
+    won ? `أحسنت ${playerName}! حللت اللغز في ${timeTaken} ثانية`
+        : `حاول مرة أخرى ${playerName}، أنت تستطيع!`;
+  document.getElementById('rTime').textContent = won ? timeTaken : '—';
+  document.getElementById('rDiff').textContent = LABELS[difficulty];
+  document.getElementById('rWins').textContent = wins;
+  showScreen('s-result');
+}
+
+function playAgain() {
+  showScreen('s-game');
+  newPuzzle();
+}
+
+/* ══════════════════════════════════════════════════
+   FIREBASE – SAVE SCORE
+══════════════════════════════════════════════════ */
+function saveScore(timeTaken) {
+  const entry = {
+    name:      playerName,
+    role:      playerRole,
+    roleLabel: ROLES[playerRole],
+    diff:      difficulty,
+    diffLabel: LABELS[difficulty],
+    time:      timeTaken,
+    ts:        Date.now(),
+    date:      new Date().toLocaleDateString('ar-SA'),
+  };
+
+  if (firebaseReady && db) {
+    db.ref('scores').push(entry)
+      .then(() => console.log('Score saved to Firebase ✅'))
+      .catch(e => { console.warn('Firebase write failed:', e); saveLocal(entry); });
+  } else {
+    saveLocal(entry);
+  }
+}
+
+/* ── LocalStorage fallback ── */
+function saveLocal(entry) {
+  const lb = getLocal();
+  lb.push(entry);
+  localStorage.setItem('abaqreeno_lb', JSON.stringify(lb));
+}
+function getLocal() {
   try { return JSON.parse(localStorage.getItem('abaqreeno_lb') || '[]'); }
   catch { return []; }
 }
 
-function saveScore(timeTaken) {
-  const name = document.getElementById('playerName').value.trim() || 'لاعب مجهول';
-  const lb   = getLeaderboard();
-  lb.push({
-    name,
-    diff: DIFF_LABEL[difficulty],
-    time: timeTaken,
-    date: new Date().toLocaleDateString('ar-SA'),
-  });
-  // Sort: hard first, then medium, then easy; within same diff, fastest time
-  const diffOrder = { 'صعب': 0, 'متوسط': 1, 'سهل': 2 };
-  lb.sort((a, b) => {
-    if (diffOrder[a.diff] !== diffOrder[b.diff]) return diffOrder[a.diff] - diffOrder[b.diff];
-    return a.time - b.time;
-  });
-  // Keep top 20
-  if (lb.length > 20) lb.splice(20);
-  localStorage.setItem('abaqreeno_lb', JSON.stringify(lb));
+/* ══════════════════════════════════════════════════
+   LEADERBOARD MODAL
+══════════════════════════════════════════════════ */
+function openLeaderboard() {
+  document.getElementById('lbOverlay').classList.add('open');
+  loadLeaderboard();
+}
+function closeLeaderboard() {
+  document.getElementById('lbOverlay').classList.remove('open');
+}
+function closeOnOutside(e) {
+  if (e.target === document.getElementById('lbOverlay')) closeLeaderboard();
+}
+function setLbFilter(f, el) {
+  lbFilter = f;
+  document.querySelectorAll('.lb-filter').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderLbTable();
 }
 
-function renderLeaderboard() {
-  const lb  = getLeaderboard();
-  const div = document.getElementById('leaderboardContent');
+function loadLeaderboard() {
+  const content = document.getElementById('lbContent');
+  const note    = document.getElementById('firebaseNote');
 
-  if (lb.length === 0) {
-    div.innerHTML = '<div class="empty-board">لا توجد نتائج بعد.<br>العب وأجب بشكل صحيح لتظهر هنا! 🎯</div>';
+  if (firebaseReady && db) {
+    note.textContent = '🌐 لوحة حية – تتحدث من Firebase';
+    content.innerHTML = '<div class="lb-loading">⏳ جاري التحميل من Firebase…</div>';
+    db.ref('scores').orderByChild('time').limitToLast(200).once('value', snap => {
+      allScores = [];
+      snap.forEach(child => allScores.push(child.val()));
+      allScores.sort((a,b) => {
+        const dOrder = {hard:0, medium:1, easy:2};
+        if (dOrder[a.diff] !== dOrder[b.diff]) return dOrder[a.diff]-dOrder[b.diff];
+        return a.time - b.time;
+      });
+      renderLbTable();
+    });
+  } else {
+    note.textContent = '⚠️ Firebase غير مُعدّ – تعرض النتائج المحلية فقط';
+    allScores = getLocal().sort((a,b) => {
+      const dOrder = {hard:0, medium:1, easy:2};
+      if (dOrder[a.diff] !== dOrder[b.diff]) return dOrder[a.diff]-dOrder[b.diff];
+      return a.time - b.time;
+    });
+    renderLbTable();
+  }
+}
+
+function renderLbTable() {
+  const filtered = lbFilter === 'all'
+    ? allScores
+    : allScores.filter(s => s.diff === lbFilter);
+
+  const top = filtered.slice(0, 30);
+  const div = document.getElementById('lbContent');
+
+  if (!top.length) {
+    div.innerHTML = '<div class="lb-empty">لا توجد نتائج بعد 🎯<br>العب وافز لتظهر هنا!</div>';
     return;
   }
 
-  let html = `<table class="leaderboard-table">
-    <thead><tr>
-      <th>#</th><th>اللاعب</th><th>المستوى</th><th>الوقت (ثانية)</th><th>التاريخ</th>
-    </tr></thead><tbody>`;
+  let html = `<table class="lb-table"><thead><tr>
+    <th>#</th><th>اللاعب</th><th>الصفة</th><th>المستوى</th><th>الوقت</th><th>التاريخ</th>
+  </tr></thead><tbody>`;
 
-  lb.forEach((entry, i) => {
-    const medal = i < 3 ? `<span class="rank-medal">${MEDALS[i]}</span>` : (i + 1);
-    html += `<tr>
-      <td>${medal}</td>
-      <td>${escapeHtml(entry.name)}</td>
-      <td>${entry.diff}</td>
-      <td>${entry.time}</td>
-      <td>${entry.date}</td>
+  top.forEach((e,i) => {
+    const rowCls = i===0?'top1':i===1?'top2':i===2?'top3':'';
+    const rank   = i < 3 ? `<span class="medal">${MEDALS[i]}</span>` : (i+1);
+    const role   = e.roleLabel || ROLES[e.role] || e.role || '—';
+    const roleBadge = `<span class="badge badge-${e.role||'visitor'}">${esc(role)}</span>`;
+    const diffBadge = `<span class="badge badge-${e.diff}">${esc(e.diffLabel||LABELS[e.diff]||e.diff)}</span>`;
+    html += `<tr class="${rowCls}">
+      <td>${rank}</td>
+      <td>${esc(e.name)}</td>
+      <td>${roleBadge}</td>
+      <td>${diffBadge}</td>
+      <td><strong>${e.time}</strong></td>
+      <td>${e.date||'—'}</td>
     </tr>`;
   });
 
@@ -799,55 +1053,41 @@ function renderLeaderboard() {
   div.innerHTML = html;
 }
 
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
 }
 
-function openLeaderboard() {
-  renderLeaderboard();
-  document.getElementById('modalOverlay').classList.add('open');
-}
-
-function closeLeaderboard() {
-  document.getElementById('modalOverlay').classList.remove('open');
-}
-
-function closeLeaderboardOutside(e) {
-  if (e.target === document.getElementById('modalOverlay')) closeLeaderboard();
-}
-
-function clearLeaderboard() {
-  if (confirm('هل تريد حذف جميع النتائج؟')) {
-    localStorage.removeItem('abaqreeno_lb');
-    renderLeaderboard();
-  }
-}
-
-// ─── Confetti ─────────────────────────────────────────
+/* ══════════════════════════════════════════════════
+   CONFETTI
+══════════════════════════════════════════════════ */
 function launchConfetti() {
-  const container = document.getElementById('confetti');
-  container.innerHTML = '';
-  for (let i = 0; i < 80; i++) {
-    const piece = document.createElement('div');
-    piece.className = 'confetti-piece';
-    const size = 8 + Math.random() * 10;
-    piece.style.cssText = `
-      left: ${Math.random() * 100}vw;
-      top: -20px;
-      width: ${size}px;
-      height: ${size}px;
-      background: ${COLORS[Math.floor(Math.random() * COLORS.length)]};
-      border-radius: ${Math.random() > 0.5 ? '50%' : '3px'};
-      animation-delay: ${Math.random() * 1.4}s;
-      animation-duration: ${1.8 + Math.random() * 0.8}s;
+  const box = document.getElementById('confetti');
+  box.innerHTML = '';
+  for (let i = 0; i < 100; i++) {
+    const p = document.createElement('div');
+    p.className = 'cp';
+    const sz = 7 + Math.random()*10;
+    p.style.cssText = `
+      left:${Math.random()*100}vw;top:-20px;
+      width:${sz}px;height:${sz}px;
+      background:${CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)]};
+      border-radius:${Math.random()>.5?'50%':'3px'};
+      animation-delay:${Math.random()*1.5}s;
+      animation-duration:${1.8+Math.random()*1}s;
     `;
-    container.appendChild(piece);
+    box.appendChild(p);
   }
-  setTimeout(() => container.innerHTML = '', 3500);
+  setTimeout(() => box.innerHTML = '', 4000);
 }
 
-// ─── Init ─────────────────────────────────────────────
-newPuzzle();
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
+validateWelcome();
 </script>
 </body>
 </html>
