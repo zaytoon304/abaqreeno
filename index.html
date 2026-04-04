@@ -410,6 +410,16 @@ body::before {
   100% { transform: translateY(110vh) rotate(900deg); opacity: 0; }
 }
 
+/* ── Toast ── */
+#toast {
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:#e74c3c;color:#fff;padding:10px 22px;border-radius:24px;
+  font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;
+  z-index:9999;opacity:0;transition:all .35s cubic-bezier(.22,1,.36,1);
+  pointer-events:none;white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
 /* ── Footer ── */
 .footer {
   text-align: center; font-size: 12px;
@@ -627,6 +637,8 @@ body::before {
 
 <!-- Confetti layer -->
 <div id="confetti"></div>
+<!-- Toast notification -->
+<div id="toast"></div>
 
 <!-- Competition Overlay -->
 <div id="compOverlay">
@@ -682,13 +694,19 @@ let firebaseReady = false;
       console.warn("Firebase: لم يتم إعداد بيانات Firebase – سيتم استخدام التخزين المحلي.");
       return;
     }
-    firebase.initializeApp(FIREBASE_CONFIG);
-    db = firebase.database();
+    /* إذا كان التطبيق مبدوءاً مسبقاً (مثل reload)، استخدمه بدل إعادة إنشائه */
+    const app = firebase.apps.length
+      ? firebase.app()
+      : firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database(app);
     firebaseReady = true;
-    console.log("Firebase: متصل ✅");
-    console.log("Firebase DB URL:", FIREBASE_CONFIG.databaseURL);
+    console.log("Firebase: متصل ✅ | URL:", FIREBASE_CONFIG.databaseURL);
+    /* اختبار الاتصال الفعلي */
+    db.ref('.info/connected').on('value', snap => {
+      console.log('Firebase online:', snap.val());
+    });
   } catch(e) {
-    console.warn("Firebase: فشل الاتصال –", e.message);
+    console.error("Firebase: فشل الاتصال –", e.message);
   }
 })();
 
@@ -995,13 +1013,21 @@ function saveScore(timeTaken, won) {
     date:      new Date().toLocaleDateString('ar-SA'),
   };
 
-  console.log('💾 Saving entry:', entry);
+  console.log('💾 Saving entry to Firebase (push):', JSON.stringify(entry));
   if (firebaseReady && db) {
+    /* push() ينشئ مفتاحاً فريداً لكل محاولة — لا يُكتب فوق السابق أبداً */
     db.ref('scores').push(entry)
-      .then(ref => console.log('✅ Score saved to Firebase, key:', ref.key))
-      .catch(e => { console.error('❌ Firebase write failed:', e.code, e.message); saveLocal(entry); });
+      .then(ref => {
+        console.log('✅ Score saved — key:', ref.key, '| name:', entry.name);
+      })
+      .catch(e => {
+        console.error('❌ Firebase write FAILED:', e.code, e.message);
+        showToast('⚠️ تعذّر الحفظ على Firebase — تُحفظ محلياً فقط');
+        saveLocal(entry);
+      });
   } else {
-    console.warn('⚠️ Firebase not ready — saving locally');
+    console.warn('⚠️ Firebase not ready — saving locally only');
+    showToast('⚠️ Firebase غير متصل — تُحفظ محلياً فقط');
     saveLocal(entry);
   }
 }
@@ -1052,24 +1078,24 @@ function loadLeaderboard() {
     note.textContent = '🌐 لوحة حية – تتحدث من Firebase';
     content.innerHTML = '<div class="lb-loading">⏳ جاري التحميل من Firebase…</div>';
     db.ref('scores').once('value', snap => {
-      console.log('📊 Firebase read OK — numChildren:', snap.numChildren());
-      console.log('📊 Raw snapshot val:', snap.val());
+      const total = snap.numChildren();
+      console.log('📊 Firebase read OK — total records:', total);
       allScores = [];
       snap.forEach(child => {
-        const v = child.val();
-        console.log('📌 Entry:', v);
-        allScores.push(v);
+        allScores.push(child.val());
       });
-      console.log('✅ allScores loaded:', allScores.length, 'entries');
+      console.log('✅ Loaded names:', allScores.map(s=>s.name));
+      note.textContent = `🌐 Firebase · ${total} سجل`;
       allScores = sortScores(allScores);
       renderLbTable();
     }, err => {
       console.error('❌ Firebase READ ERROR:', err.code, err.message);
-      note.textContent = '❌ خطأ Firebase: ' + err.message;
+      note.textContent = '❌ خطأ في القراءة — تحقق من Rules';
       content.innerHTML = `<div class="lb-empty">
         تعذّر قراءة البيانات من Firebase<br>
-        <small style="color:#e74c3c">${err.code}: ${err.message}</small><br><br>
-        <small>تحقق من قواعد Realtime Database – يجب السماح بالقراءة على مسار <b>scores</b></small>
+        <small style="color:#e74c3c;font-size:12px">${err.code}: ${err.message}</small><br><br>
+        <small>اذهب إلى Firebase Console ← Realtime Database ← Rules<br>
+        وتأكد أن <b>scores</b> يسمح بـ <b>".read": true, ".write": true</b></small>
       </div>`;
     });
   } else {
@@ -1119,6 +1145,16 @@ function renderLbTable() {
 
   html += '</tbody></table>';
   div.innerHTML = html;
+}
+
+/* ── Toast ── */
+let toastTimer = null;
+function showToast(msg, duration=4000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
 }
 
 function esc(s) {
