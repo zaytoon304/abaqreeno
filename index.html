@@ -686,6 +686,7 @@ let firebaseReady = false;
     db = firebase.database();
     firebaseReady = true;
     console.log("Firebase: متصل ✅");
+    console.log("Firebase DB URL:", FIREBASE_CONFIG.databaseURL);
   } catch(e) {
     console.warn("Firebase: فشل الاتصال –", e.message);
   }
@@ -994,11 +995,13 @@ function saveScore(timeTaken, won) {
     date:      new Date().toLocaleDateString('ar-SA'),
   };
 
+  console.log('💾 Saving entry:', entry);
   if (firebaseReady && db) {
     db.ref('scores').push(entry)
-      .then(() => console.log('Score saved to Firebase ✅'))
-      .catch(e => { console.warn('Firebase write failed:', e); saveLocal(entry); });
+      .then(ref => console.log('✅ Score saved to Firebase, key:', ref.key))
+      .catch(e => { console.error('❌ Firebase write failed:', e.code, e.message); saveLocal(entry); });
   } else {
+    console.warn('⚠️ Firebase not ready — saving locally');
     saveLocal(entry);
   }
 }
@@ -1049,10 +1052,25 @@ function loadLeaderboard() {
     note.textContent = '🌐 لوحة حية – تتحدث من Firebase';
     content.innerHTML = '<div class="lb-loading">⏳ جاري التحميل من Firebase…</div>';
     db.ref('scores').once('value', snap => {
+      console.log('📊 Firebase read OK — numChildren:', snap.numChildren());
+      console.log('📊 Raw snapshot val:', snap.val());
       allScores = [];
-      snap.forEach(child => allScores.push(child.val()));
+      snap.forEach(child => {
+        const v = child.val();
+        console.log('📌 Entry:', v);
+        allScores.push(v);
+      });
+      console.log('✅ allScores loaded:', allScores.length, 'entries');
       allScores = sortScores(allScores);
       renderLbTable();
+    }, err => {
+      console.error('❌ Firebase READ ERROR:', err.code, err.message);
+      note.textContent = '❌ خطأ Firebase: ' + err.message;
+      content.innerHTML = `<div class="lb-empty">
+        تعذّر قراءة البيانات من Firebase<br>
+        <small style="color:#e74c3c">${err.code}: ${err.message}</small><br><br>
+        <small>تحقق من قواعد Realtime Database – يجب السماح بالقراءة على مسار <b>scores</b></small>
+      </div>`;
     });
   } else {
     note.textContent = '⚠️ Firebase غير مُعدّ – تعرض النتائج المحلية فقط';
