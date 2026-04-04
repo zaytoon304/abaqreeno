@@ -416,6 +416,39 @@ body::before {
   color: rgba(255,255,255,0.38);
   z-index: 1; position: relative;
 }
+
+/* ══════════════════════════════════════════════════
+   COMPETITION OVERLAY
+══════════════════════════════════════════════════ */
+#compOverlay {
+  position:fixed;inset:0;z-index:900;
+  background:rgba(10,20,34,.97);
+  display:none;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;gap:0;
+}
+#compOverlay.active{display:flex;}
+#compNum{
+  font-size:clamp(100px,22vw,180px);font-weight:900;
+  color:var(--gold);line-height:1;
+  animation:compPop .3s cubic-bezier(.22,1,.36,1);
+}
+@keyframes compPop{from{transform:scale(.6);opacity:.3}to{transform:scale(1);opacity:1}}
+#compMsg{
+  font-size:clamp(20px,4vw,36px);font-weight:900;
+  color:#fff;margin-top:10px;
+}
+#compSub{
+  font-size:clamp(13px,2vw,18px);color:rgba(255,255,255,.45);
+  margin-top:8px;
+}
+.btn-comp{
+  margin-top:28px;padding:10px 28px;border:2px solid rgba(255,255,255,.25);
+  background:transparent;color:rgba(255,255,255,.5);
+  border-radius:20px;font-family:'Tajawal',sans-serif;
+  font-size:14px;font-weight:700;cursor:pointer;
+}
+.btn-comp:hover{border-color:#fff;color:#fff;}
 </style>
 </head>
 <body>
@@ -480,6 +513,9 @@ body::before {
 
     <div style="margin-top:14px; text-align:center;">
       <button class="btn btn-purple" onclick="openLeaderboard()">🏆 لوحة الصدارة العالمية</button>
+    </div>
+    <div style="margin-top:10px; text-align:center;">
+      <button class="btn btn-green btn-block" onclick="triggerCompetition()">🏁 ابدأ مسابقة للجميع</button>
     </div>
   </div>
 
@@ -591,6 +627,14 @@ body::before {
 
 <!-- Confetti layer -->
 <div id="confetti"></div>
+
+<!-- Competition Overlay -->
+<div id="compOverlay">
+  <div id="compNum">5</div>
+  <div id="compMsg">استعد…</div>
+  <div id="compSub">ستبدأ اللعبة تلقائياً عند الصفر</div>
+  <button class="btn-comp" onclick="dismissComp()">إغلاق ✕</button>
+</div>
 
 <div class="footer">مدارس الأرقم · وحدة الموهبة والذكاء الاصطناعي</div>
 
@@ -828,7 +872,7 @@ function checkAnswers() {
     gameOver = true;
     const timeTaken = timerMax - timeLeft;
     launchConfetti();
-    saveScore(timeTaken);
+    saveScore(timeTaken, true);
     setTimeout(() => showResult(true, timeTaken), 1200);
   } else {
     msg.textContent = '❌ بعض الإجابات خاطئة، حاول مجدداً!';
@@ -885,6 +929,7 @@ function tick() {
     setMsg('⏰ انتهى الوقت! حاول مرة أخرى.','timeout');
     attempts++;
     document.getElementById('attempts').textContent = attempts;
+    saveScore(timerMax, false);
     setTimeout(() => showResult(false, timerMax), 1400);
   }
 }
@@ -936,7 +981,7 @@ function playAgain() {
 /* ══════════════════════════════════════════════════
    FIREBASE – SAVE SCORE
 ══════════════════════════════════════════════════ */
-function saveScore(timeTaken) {
+function saveScore(timeTaken, won) {
   const entry = {
     name:      playerName,
     role:      playerRole,
@@ -944,6 +989,7 @@ function saveScore(timeTaken) {
     diff:      difficulty,
     diffLabel: LABELS[difficulty],
     time:      timeTaken,
+    won:       !!won,
     ts:        Date.now(),
     date:      new Date().toLocaleDateString('ar-SA'),
   };
@@ -988,6 +1034,13 @@ function setLbFilter(f, el) {
   renderLbTable();
 }
 
+function sortScores(arr) {
+  return [...arr].sort((a,b) => {
+    if (!!b.won !== !!a.won) return (b.won?1:0)-(a.won?1:0);
+    return a.time - b.time;
+  });
+}
+
 function loadLeaderboard() {
   const content = document.getElementById('lbContent');
   const note    = document.getElementById('firebaseNote');
@@ -995,23 +1048,15 @@ function loadLeaderboard() {
   if (firebaseReady && db) {
     note.textContent = '🌐 لوحة حية – تتحدث من Firebase';
     content.innerHTML = '<div class="lb-loading">⏳ جاري التحميل من Firebase…</div>';
-    db.ref('scores').orderByChild('time').limitToLast(200).once('value', snap => {
+    db.ref('scores').once('value', snap => {
       allScores = [];
       snap.forEach(child => allScores.push(child.val()));
-      allScores.sort((a,b) => {
-        const dOrder = {hard:0, medium:1, easy:2};
-        if (dOrder[a.diff] !== dOrder[b.diff]) return dOrder[a.diff]-dOrder[b.diff];
-        return a.time - b.time;
-      });
+      allScores = sortScores(allScores);
       renderLbTable();
     });
   } else {
     note.textContent = '⚠️ Firebase غير مُعدّ – تعرض النتائج المحلية فقط';
-    allScores = getLocal().sort((a,b) => {
-      const dOrder = {hard:0, medium:1, easy:2};
-      if (dOrder[a.diff] !== dOrder[b.diff]) return dOrder[a.diff]-dOrder[b.diff];
-      return a.time - b.time;
-    });
+    allScores = sortScores(getLocal());
     renderLbTable();
   }
 }
@@ -1021,22 +1066,26 @@ function renderLbTable() {
     ? allScores
     : allScores.filter(s => s.diff === lbFilter);
 
-  const top = filtered.slice(0, 30);
   const div = document.getElementById('lbContent');
 
-  if (!top.length) {
-    div.innerHTML = '<div class="lb-empty">لا توجد نتائج بعد 🎯<br>العب وافز لتظهر هنا!</div>';
+  if (!filtered.length) {
+    div.innerHTML = '<div class="lb-empty">لا توجد نتائج بعد 🎯<br>العب لتظهر هنا!</div>';
     return;
   }
 
   let html = `<table class="lb-table"><thead><tr>
-    <th>#</th><th>اللاعب</th><th>الصفة</th><th>المستوى</th><th>الوقت</th><th>التاريخ</th>
+    <th>#</th><th>اللاعب</th><th>الصفة</th><th>المستوى</th><th>الوقت(ث)</th><th>النتيجة</th><th>التاريخ</th>
   </tr></thead><tbody>`;
 
-  top.forEach((e,i) => {
+  filtered.forEach((e,i) => {
     const rowCls = i===0?'top1':i===1?'top2':i===2?'top3':'';
-    const rank   = i < 3 ? `<span class="medal">${MEDALS[i]}</span>` : (i+1);
-    const role   = e.roleLabel || ROLES[e.role] || e.role || '—';
+    const wonBadge = e.won
+      ? '<span class="badge badge-easy">✅ نجح</span>'
+      : '<span class="badge badge-hard">❌ خسر</span>';
+    const rank = i < 3 && e.won
+      ? `<span class="medal">${MEDALS[i]}</span>`
+      : (i+1);
+    const role = e.roleLabel || ROLES[e.role] || e.role || '—';
     const roleBadge = `<span class="badge badge-${e.role||'visitor'}">${esc(role)}</span>`;
     const diffBadge = `<span class="badge badge-${e.diff}">${esc(e.diffLabel||LABELS[e.diff]||e.diff)}</span>`;
     html += `<tr class="${rowCls}">
@@ -1044,7 +1093,8 @@ function renderLbTable() {
       <td>${esc(e.name)}</td>
       <td>${roleBadge}</td>
       <td>${diffBadge}</td>
-      <td><strong>${e.time}</strong></td>
+      <td><strong>${e.won ? e.time : '—'}</strong></td>
+      <td>${wonBadge}</td>
       <td>${e.date||'—'}</td>
     </tr>`;
   });
@@ -1085,9 +1135,74 @@ function launchConfetti() {
 }
 
 /* ══════════════════════════════════════════════════
+   COMPETITION MODE
+══════════════════════════════════════════════════ */
+let compTimer = null;
+let compActive = false;
+
+function triggerCompetition() {
+  if (!firebaseReady || !db) {
+    alert('تحتاج اتصال Firebase لبدء المسابقة');
+    return;
+  }
+  const startAt = Date.now() + 5000;
+  db.ref('competition').set({ startAt, active: true });
+}
+
+function listenCompetition() {
+  if (!firebaseReady || !db) return;
+  db.ref('competition').on('value', snap => {
+    const data = snap.val();
+    if (!data || !data.active) { dismissComp(); return; }
+    if (data.startAt < Date.now() - 12000) return; // stale, ignore
+    if (!compActive) runCompCountdown(data.startAt);
+  });
+}
+
+function runCompCountdown(startAt) {
+  compActive = true;
+  const overlay = document.getElementById('compOverlay');
+  const numEl   = document.getElementById('compNum');
+  const msgEl   = document.getElementById('compMsg');
+  overlay.classList.add('active');
+
+  function tick() {
+    const remaining = Math.ceil((startAt - Date.now()) / 1000);
+    if (remaining > 0) {
+      numEl.textContent = remaining;
+      msgEl.textContent = 'استعد…';
+      // Force re-animation
+      numEl.style.animation = 'none';
+      void numEl.offsetWidth;
+      numEl.style.animation = '';
+      compTimer = setTimeout(tick, 300);
+    } else {
+      numEl.textContent = '🚀';
+      msgEl.textContent = 'ابدأ!';
+      document.getElementById('compSub').textContent = '';
+      compTimer = setTimeout(() => {
+        dismissComp();
+        const nm = document.getElementById('inputName').value.trim();
+        if (nm && playerRole) { playerName = nm; startGame(); }
+        if (firebaseReady && db) db.ref('competition').set({ active: false });
+      }, 900);
+    }
+  }
+  tick();
+}
+
+function dismissComp() {
+  clearTimeout(compTimer);
+  compActive = false;
+  document.getElementById('compOverlay').classList.remove('active');
+  document.getElementById('compSub').textContent = 'ستبدأ اللعبة تلقائياً عند الصفر';
+}
+
+/* ══════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════ */
 validateWelcome();
+listenCompetition();
 </script>
 </body>
 </html>

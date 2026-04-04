@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة المشرف – عبقرينو</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Tajawal',sans-serif;
+  background:linear-gradient(135deg,#1a2a3a 0%,#2c4a6e 55%,#1a2a3a 100%);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:24px 16px;gap:20px;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,.07) 1px,transparent 1px);
+  background-size:50px 50px;pointer-events:none;z-index:0;
+}
+
+/* ── Auth screen ── */
+#authScreen{
+  position:fixed;inset:0;z-index:999;
+  background:linear-gradient(135deg,#1a2a3a,#2c4a6e);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  padding:24px;
+}
+.auth-box{
+  background:#fff;border-radius:24px;padding:36px 32px;
+  max-width:380px;width:100%;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+  border:3px solid #4a7fa5;text-align:center;
+}
+.auth-icon{font-size:52px;margin-bottom:12px;}
+.auth-title{font-size:24px;font-weight:900;color:#1a2a3a;margin-bottom:4px;}
+.auth-sub{font-size:14px;color:#888;margin-bottom:24px;}
+.auth-input{
+  width:100%;padding:12px 16px;border:2px solid #ddd;border-radius:12px;
+  font-family:'Tajawal',sans-serif;font-size:16px;font-weight:700;
+  color:#1a2a3a;outline:none;text-align:center;letter-spacing:4px;
+  margin-bottom:16px;transition:border-color .2s;
+}
+.auth-input:focus{border-color:#4a7fa5;}
+.auth-btn{
+  width:100%;padding:13px;background:#1a2a3a;color:#fff;
+  border:none;border-radius:12px;font-family:'Tajawal',sans-serif;
+  font-size:16px;font-weight:900;cursor:pointer;transition:all .2s;
+}
+.auth-btn:hover{background:#2c4a6e;}
+.auth-err{color:#e74c3c;font-size:13px;font-weight:700;margin-top:10px;min-height:18px;}
+
+/* ── Main layout ── */
+.page{width:100%;max-width:1100px;position:relative;z-index:1;display:none;flex-direction:column;gap:20px;}
+.page.visible{display:flex;}
+
+/* ── Header ── */
+.admin-header{
+  background:#fff;border-radius:20px;
+  padding:20px 26px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);border:2px solid #4a7fa5;
+  flex-wrap:wrap;
+}
+.hdr-brand{display:flex;align-items:center;gap:14px;}
+.hdr-logo{width:52px;height:52px;border-radius:50%;border:2px solid #1a2a3a;object-fit:cover;}
+.hdr-text .t1{font-size:20px;font-weight:900;color:#1a2a3a;}
+.hdr-text .t2{font-size:13px;color:#4a7fa5;font-weight:700;}
+.hdr-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ── Stats row ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+@media(max-width:700px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+.stat-card{
+  background:#fff;border-radius:16px;padding:18px 16px;text-align:center;
+  box-shadow:0 6px 24px rgba(0,0,0,.2);border:2px solid #e0e0e0;
+}
+.stat-card .sv{font-size:32px;font-weight:900;color:#1a2a3a;}
+.stat-card .sl{font-size:13px;color:#888;font-weight:700;margin-top:3px;}
+
+/* ── Toolbar ── */
+.toolbar{
+  background:#fff;border-radius:16px;padding:14px 18px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  box-shadow:0 4px 16px rgba(0,0,0,.15);
+}
+.toolbar label{font-size:14px;font-weight:700;color:#1a2a3a;}
+.tb-select,.tb-input{
+  padding:7px 12px;border:2px solid #ddd;border-radius:10px;
+  font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;color:#1a2a3a;
+  outline:none;transition:border-color .2s;
+}
+.tb-select:focus,.tb-input:focus{border-color:#4a7fa5;}
+.tb-btn{
+  padding:7px 16px;background:#1a2a3a;color:#fff;border:none;border-radius:10px;
+  font-family:'Tajawal',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
+  transition:all .2s;
+}
+.tb-btn:hover{background:#2c4a6e;}
+.tb-btn.green{background:#2ecc71;}
+.tb-btn.green:hover{background:#27ae60;}
+.tb-btn.red{background:#e74c3c;}
+.tb-btn.red:hover{background:#c0392b;}
+
+/* ── Table ── */
+.table-wrap{
+  background:#fff;border-radius:18px;
+  box-shadow:0 8px 32px rgba(0,0,0,.2);
+  overflow:auto;
+}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{
+  background:#1a2a3a;color:#fff;padding:11px 10px;
+  font-weight:700;text-align:center;position:sticky;top:0;z-index:2;
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+thead th:hover{background:#2c4a6e;}
+thead th .sort-arrow{font-size:10px;opacity:.6;margin-right:4px;}
+tbody td{
+  padding:9px 10px;text-align:center;
+  border-bottom:1px solid #f0f0f0;color:#333;font-weight:700;
+}
+tbody tr:nth-child(even) td{background:#f9f9f9;}
+tbody tr:hover td{background:#f0f6ff;}
+tbody tr.won-row td{background:#f0fff4;}
+tbody tr.won-row:hover td{background:#e0faea;}
+
+.badge{
+  display:inline-block;padding:2px 9px;
+  border-radius:10px;font-size:12px;font-weight:700;
+}
+.badge-easy{background:#d5f5e3;color:#1e8449;}
+.badge-medium{background:#fef9e7;color:#b7770d;}
+.badge-hard{background:#fdedec;color:#c0392b;}
+.badge-student{background:#e8f4fd;color:#1a5276;}
+.badge-teacher{background:#f4ecf7;color:#7d3c98;}
+.badge-visitor{background:#eafaf1;color:#1e8449;}
+.badge-won{background:#d5f5e3;color:#1e8449;}
+.badge-lost{background:#fdedec;color:#c0392b;}
+
+.medal{font-size:16px;}
+.lb-loading{text-align:center;padding:40px;color:#aaa;font-size:15px;}
+.lb-empty{text-align:center;padding:40px;color:#aaa;font-size:14px;}
+.row-count{font-size:13px;color:#888;padding:10px 16px;font-weight:700;}
+</style>
+</head>
+<body>
+
+<!-- ── Auth Screen ── -->
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-icon">🔐</div>
+    <div class="auth-title">لوحة المشرف</div>
+    <div class="auth-sub">عبقرينو – مدارس الأرقم</div>
+    <input class="auth-input" id="passInput" type="password"
+           placeholder="••••••••" maxlength="30"
+           onkeydown="if(event.key==='Enter')checkPass()">
+    <button class="auth-btn" onclick="checkPass()">دخول 🚀</button>
+    <div class="auth-err" id="authErr"></div>
+  </div>
+</div>
+
+<!-- ── Main Page ── -->
+<div class="page" id="mainPage">
+
+  <!-- Header -->
+  <div class="admin-header">
+    <div class="hdr-brand">
+      <img class="hdr-logo" src="https://pbs.twimg.com/profile_images/mS00p1N-_400x400.jpg" alt="logo">
+      <div class="hdr-text">
+        <div class="t1">لوحة المشرف – عبقرينو</div>
+        <div class="t2">مدارس الأرقم · وحدة الموهبة والذكاء الاصطناعي</div>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <button class="tb-btn green" onclick="loadData()">🔄 تحديث</button>
+      <button class="tb-btn" onclick="exportCSV()">📥 تصدير CSV</button>
+      <button class="tb-btn red" onclick="confirmClear()">🗑️ مسح الكل</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="sv" id="stTotal">—</div><div class="sl">إجمالي المحاولات</div></div>
+    <div class="stat-card"><div class="sv" id="stWins">—</div><div class="sl">نجح</div></div>
+    <div class="stat-card"><div class="sv" id="stLoss">—</div><div class="sl">خسر</div></div>
+    <div class="stat-card"><div class="sv" id="stBest">—</div><div class="sl">أسرع وقت (ث)</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <label>المستوى:</label>
+    <select class="tb-select" id="filterDiff" onchange="applyFilters()">
+      <option value="all">الكل</option>
+      <option value="easy">سهل</option>
+      <option value="medium">متوسط</option>
+      <option value="hard">صعب</option>
+    </select>
+    <label>النتيجة:</label>
+    <select class="tb-select" id="filterResult" onchange="applyFilters()">
+      <option value="all">الكل</option>
+      <option value="won">نجح فقط</option>
+      <option value="lost">خسر فقط</option>
+    </select>
+    <label>بحث:</label>
+    <input class="tb-input" id="searchName" placeholder="اسم اللاعب…" oninput="applyFilters()">
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <div class="lb-loading" id="tableMsg">⏳ جاري التحميل…</div>
+    <div class="row-count" id="rowCount" style="display:none"></div>
+    <table id="dataTable" style="display:none">
+      <thead>
+        <tr>
+          <th onclick="sortBy('rank')"><span class="sort-arrow" id="arr-rank"></span>#</th>
+          <th onclick="sortBy('name')"><span class="sort-arrow" id="arr-name"></span>اللاعب</th>
+          <th onclick="sortBy('role')"><span class="sort-arrow" id="arr-role"></span>الصفة</th>
+          <th onclick="sortBy('diff')"><span class="sort-arrow" id="arr-diff"></span>المستوى</th>
+          <th onclick="sortBy('time')"><span class="sort-arrow" id="arr-time"></span>الوقت(ث)</th>
+          <th onclick="sortBy('won')"><span class="sort-arrow" id="arr-won"></span>النتيجة</th>
+          <th onclick="sortBy('date')"><span class="sort-arrow" id="arr-date"></span>التاريخ</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+/* ── Firebase ── */
+const FB = {
+  apiKey:"AIzaSyAc6601ITIpf0pvU_Bq2EhpucAXU-f2hss",
+  authDomain:"abaqreeno.firebaseapp.com",
+  databaseURL:"https://abaqreeno-default-rtdb.firebaseio.com",
+  projectId:"abaqreeno",
+  storageBucket:"abaqreeno.firebasestorage.app",
+  messagingSenderId:"932075691683",
+  appId:"1:932075691683:web:53641b9a99520f430ba916"
+};
+let db=null;
+try{firebase.initializeApp(FB);db=firebase.database();}catch(e){console.warn(e);}
+
+const PASS     = 'arqam2025';
+const ROLES    = {student:'طالب',teacher:'معلم',visitor:'زائر'};
+const LABELS   = {easy:'سهل',medium:'متوسط',hard:'صعب'};
+const MEDALS   = ['🥇','🥈','🥉'];
+const DORDER   = {hard:0,medium:1,easy:2};
+
+/* ── Auth ── */
+function checkPass(){
+  const v = document.getElementById('passInput').value;
+  if(v === PASS){
+    document.getElementById('authScreen').style.display='none';
+    document.getElementById('mainPage').classList.add('visible');
+    loadData();
+  } else {
+    document.getElementById('authErr').textContent='كلمة المرور غير صحيحة ❌';
+    document.getElementById('passInput').value='';
+    document.getElementById('passInput').focus();
+  }
+}
+
+/* ── Data ── */
+let allRows = [];
+let sortCol = 'rank';
+let sortAsc = true;
+
+function loadData(){
+  document.getElementById('tableMsg').style.display='block';
+  document.getElementById('dataTable').style.display='none';
+  document.getElementById('rowCount').style.display='none';
+  if(!db){ document.getElementById('tableMsg').textContent='❌ Firebase غير متصل'; return; }
+
+  db.ref('scores').once('value', snap => {
+    allRows=[];
+    snap.forEach(child => allRows.push({key:child.key,...child.val()}));
+    // Master sort: wins first, then time asc
+    allRows.sort((a,b)=>{
+      if(!!b.won !== !!a.won) return (b.won?1:0)-(a.won?1:0);
+      if(DORDER[a.diff]!==DORDER[b.diff]) return DORDER[a.diff]-DORDER[b.diff];
+      return a.time-b.time;
+    });
+    updateStats();
+    applyFilters();
+    document.getElementById('tableMsg').style.display='none';
+    document.getElementById('dataTable').style.display='table';
+  });
+}
+
+function updateStats(){
+  const wins=allRows.filter(r=>r.won).length;
+  const losses=allRows.length-wins;
+  const bestWin=allRows.filter(r=>r.won).sort((a,b)=>a.time-b.time)[0];
+  document.getElementById('stTotal').textContent=allRows.length;
+  document.getElementById('stWins').textContent=wins;
+  document.getElementById('stLoss').textContent=losses;
+  document.getElementById('stBest').textContent=bestWin?bestWin.time:'—';
+}
+
+function applyFilters(){
+  const diff=document.getElementById('filterDiff').value;
+  const result=document.getElementById('filterResult').value;
+  const search=document.getElementById('searchName').value.trim().toLowerCase();
+
+  let rows=[...allRows];
+  if(diff!=='all') rows=rows.filter(r=>r.diff===diff);
+  if(result==='won') rows=rows.filter(r=>r.won);
+  if(result==='lost') rows=rows.filter(r=>!r.won);
+  if(search) rows=rows.filter(r=>(r.name||'').toLowerCase().includes(search));
+
+  renderTable(rows);
+}
+
+function renderTable(rows){
+  const tbody=document.getElementById('tbody');
+  const rowCount=document.getElementById('rowCount');
+  document.getElementById('dataTable').style.display=rows.length?'table':'none';
+  document.getElementById('tableMsg').style.display=rows.length?'none':'block';
+  if(!rows.length){ document.getElementById('tableMsg').textContent='لا توجد نتائج'; return;}
+
+  rowCount.style.display='block';
+  rowCount.textContent=`عدد النتائج: ${rows.length}`;
+
+  tbody.innerHTML='';
+  rows.forEach((e,i)=>{
+    const wonBadge=e.won
+      ?'<span class="badge badge-won">✅ نجح</span>'
+      :'<span class="badge badge-lost">❌ خسر</span>';
+    const rank=i<3&&e.won?`<span class="medal">${MEDALS[i]}</span>`:(i+1);
+    const role=e.roleLabel||ROLES[e.role]||e.role||'—';
+    const roleBadge=`<span class="badge badge-${e.role||'visitor'}">${esc(role)}</span>`;
+    const diffBadge=`<span class="badge badge-${e.diff}">${esc(e.diffLabel||LABELS[e.diff]||e.diff||'—')}</span>`;
+    const tr=document.createElement('tr');
+    if(e.won) tr.classList.add('won-row');
+    tr.innerHTML=`<td>${rank}</td><td>${esc(e.name||'—')}</td><td>${roleBadge}</td><td>${diffBadge}</td><td><strong>${e.won&&e.time?e.time:'—'}</strong></td><td>${wonBadge}</td><td>${e.date||'—'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ── Sort ── */
+function sortBy(col){
+  sortAsc = sortCol===col ? !sortAsc : true;
+  sortCol = col;
+  // Update arrows
+  ['rank','name','role','diff','time','won','date'].forEach(c=>{
+    const el=document.getElementById('arr-'+c);
+    if(el) el.textContent= c===col?(sortAsc?'▲':'▼'):'';
+  });
+  applyFilters();
+}
+
+/* ── Export CSV ── */
+function exportCSV(){
+  if(!allRows.length){alert('لا توجد بيانات للتصدير');return;}
+  const headers=['#','الاسم','الصفة','المستوى','الوقت','النتيجة','التاريخ'];
+  const rows=allRows.map((e,i)=>[
+    i+1,
+    e.name||'',
+    e.roleLabel||ROLES[e.role]||e.role||'',
+    e.diffLabel||LABELS[e.diff]||e.diff||'',
+    e.won?e.time:'—',
+    e.won?'نجح':'خسر',
+    e.date||''
+  ]);
+  const csv=[headers,...rows].map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='abaqreeno_scores.csv';
+  a.click();
+}
+
+/* ── Clear all ── */
+function confirmClear(){
+  if(!confirm('هل أنت متأكد من مسح جميع النتائج؟ لا يمكن التراجع!')) return;
+  if(!db) return;
+  db.ref('scores').remove().then(()=>{ allRows=[]; updateStats(); applyFilters(); alert('تم المسح ✅'); });
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.getElementById('passInput').focus();
+</script>
+</body>
+</html>
