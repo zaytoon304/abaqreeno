@@ -252,6 +252,13 @@ body::before {
   font-size: 24px; font-weight: 900;
   font-family: 'Tajawal', sans-serif;
   color: var(--dark); outline: none; cursor: pointer;
+  -moz-appearance: textfield;
+}
+/* إخفاء أسهم الزيادة/النقصان — المتسابق لازم يعرف الرقم، مش يجربه بالأسهم */
+.cell input::-webkit-outer-spin-button,
+.cell input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .cell input:focus { background: rgba(74,127,165,0.2); border-radius: 8px; }
 .cell.correct { background: #b6f0c8 !important; }
@@ -292,7 +299,7 @@ body::before {
 .result-sub { text-align: center; font-size: 14px; color: #666; margin-bottom: 20px; }
 
 .stats-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(2, 1fr);
   gap: 10px; margin-bottom: 20px;
 }
 .stat-box {
@@ -459,6 +466,46 @@ body::before {
   font-size:14px;font-weight:700;cursor:pointer;
 }
 .btn-comp:hover{border-color:#fff;color:#fff;}
+
+/* ── Sound Toggle ── */
+.sound-toggle {
+  width: 38px; height: 38px;
+  border-radius: 50%; border: 2px solid var(--blue-light);
+  background: #fff; cursor: pointer;
+  font-size: 17px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; flex-shrink: 0;
+}
+.sound-toggle:hover { border-color: var(--blue); background: #f0f8ff; }
+.sound-toggle.muted { opacity: .45; }
+
+/* ── Mascot ── */
+.mascot-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 18px;
+}
+.mascot-avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 23px; flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  animation: mascotBob 2.4s ease-in-out infinite;
+  transition: background .2s;
+}
+.mascot-avatar.win, .mascot-avatar.correct, .mascot-avatar.champion { background: linear-gradient(135deg, var(--green), #7ee8a8); }
+.mascot-avatar.wrong    { background: linear-gradient(135deg, var(--red), #ff9a8b); }
+.mascot-avatar.timeout  { background: linear-gradient(135deg, var(--orange), #ffd08a); }
+@keyframes mascotBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.mascot-bubble {
+  flex: 1; background: #f0f8ff; border: 2px solid var(--blue-light);
+  border-radius: 14px; padding: 8px 12px;
+  font-size: 12.5px; font-weight: 700; color: var(--dark);
+  line-height: 1.5;
+}
+
+/* ── Level badge ── */
+.level-disp { color: var(--purple); }
 </style>
 </head>
 <body>
@@ -474,9 +521,18 @@ body::before {
       <div class="name">مدارس الأرقم</div>
       <div class="sub">وحدة الموهبة والذكاء الاصطناعي</div>
     </div>
-    <div class="school-logo">🏫</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="sound-toggle" id="btnSound" onclick="toggleSound()" title="تشغيل/كتم الصوت">🔊</button>
+      <div class="school-logo">🏫</div>
+    </div>
   </div>
   <div class="divider"></div>
+
+  <!-- ── Mascot (يظهر في كل الشاشات) ── -->
+  <div class="mascot-bar">
+    <div class="mascot-avatar" id="mascotAvatar">🧠</div>
+    <div class="mascot-bubble" id="mascotBubble">أهلاً بك! أنا عبقرينو، جاهز تتحدى عقلك؟</div>
+  </div>
 
   <!-- ════════════
        SCREEN 1: WELCOME
@@ -572,6 +628,7 @@ body::before {
     <div class="score-bar">
       <div>النجاحات <strong id="wins">0</strong></div>
       <div>المحاولات <strong id="attempts">0</strong></div>
+      <div>المرحلة <strong class="level-disp">1 / 5</strong></div>
     </div>
 
     <div style="margin-top:14px; text-align:center;">
@@ -594,11 +651,15 @@ body::before {
       </div>
       <div class="stat-box">
         <div class="stat-val" id="rDiff">—</div>
-        <div class="stat-lbl">المستوى</div>
+        <div class="stat-lbl">الصعوبة</div>
       </div>
       <div class="stat-box">
         <div class="stat-val" id="rWins">—</div>
         <div class="stat-lbl">إجمالي الفوز</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="rLevel">—</div>
+        <div class="stat-lbl">المرحلة</div>
       </div>
     </div>
 
@@ -720,6 +781,14 @@ const ROLES    = { student: 'طالب', teacher: 'معلم', visitor: 'زائر'
 const MEDALS   = ['🥇','🥈','🥉'];
 const CONFETTI_COLORS = ['#f5c842','#4a7fa5','#2ecc71','#e74c3c','#9b59b6','#e67e22','#1abc9c','#3498db'];
 
+/* ── نظام المراحل: كل حل صحيح يرفع المرحلة، الوقت يقل والتلميحات تقل تدريجياً ── */
+const MAX_LEVEL = 5;
+function levelParams(lv) {
+  const hints    = Math.max(1, HINTS[difficulty] - Math.floor((lv - 1) / 2));
+  const duration = Math.max(40, DURATION[difficulty] - (lv - 1) * 15);
+  return { hints, duration };
+}
+
 /* ══════════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════════ */
@@ -731,6 +800,7 @@ let rowSums    = [];
 let colSums    = [];
 let wins       = 0;
 let attempts   = 0;
+let level      = 1;
 let timeLeft   = 120;
 let timerMax   = 120;
 let timerID    = null;
@@ -739,9 +809,86 @@ let lbFilter   = 'all';
 let allScores  = [];
 
 /* ══════════════════════════════════════════════════
+   SOUND ENGINE (Web Audio API — بدون ملفات خارجية)
+══════════════════════════════════════════════════ */
+let audioCtx  = null;
+let soundOn   = localStorage.getItem('abaqreeno_sound') !== 'off';
+
+function ensureAudio() {
+  if (!soundOn) return null;
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function tone(freq, start, dur, type='sine', peak=0.18) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  const t0 = ctx.currentTime + start;
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(peak, t0 + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+
+const sfx = {
+  click:   () => tone(520, 0, 0.08, 'triangle', 0.12),
+  correct: () => { tone(523,0,0.14); tone(659,0.12,0.14); tone(784,0.24,0.14); tone(1047,0.36,0.35); },
+  wrong:   () => { tone(220,0,0.18,'sawtooth',0.14); tone(180,0.12,0.22,'sawtooth',0.14); },
+  tick:    () => tone(880, 0, 0.06, 'square', 0.06),
+  timeout: () => { tone(300,0,0.2,'sawtooth',0.15); tone(220,0.18,0.2,'sawtooth',0.15); tone(150,0.36,0.35,'sawtooth',0.15); },
+};
+
+function toggleSound() {
+  soundOn = !soundOn;
+  localStorage.setItem('abaqreeno_sound', soundOn ? 'on' : 'off');
+  syncSoundButton();
+  if (soundOn) sfx.click();
+}
+
+function syncSoundButton() {
+  const btn = document.getElementById('btnSound');
+  btn.textContent = soundOn ? '🔊' : '🔇';
+  btn.classList.toggle('muted', !soundOn);
+}
+syncSoundButton();
+
+/* ══════════════════════════════════════════════════
+   MASCOT (عبقرينو) — بدون صور خارجية، تعبيرات بالإيموجي
+══════════════════════════════════════════════════ */
+const MASCOT_MOODS = {
+  idle:     { face: '🧠', text: 'أهلاً بك! أنا عبقرينو، جاهز تتحدى عقلك؟' },
+  playing:  { face: '🤔', text: 'فكّر منطقياً... الحل مخبّى في الأرقام المعطاة!' },
+  correct:  { face: '🎉', text: 'برافو! إجابة صحيحة!' },
+  wrong:    { face: '😅', text: 'قريب! جرّب تاني، أنا واثق فيك' },
+  timeout:  { face: '😮', text: 'خلص الوقت! المرة الجاية هتكون أسرع' },
+  win:      { face: '🥳', text: 'ممتاز! جاهز للمرحلة الجاية؟' },
+  champion: { face: '👑', text: 'أنهيت كل المراحل! أنت عبقري حقيقي!' },
+};
+function setMascot(mood) {
+  const m = MASCOT_MOODS[mood] || MASCOT_MOODS.idle;
+  const avatar = document.getElementById('mascotAvatar');
+  const bubble = document.getElementById('mascotBubble');
+  avatar.textContent = m.face;
+  avatar.className   = 'mascot-avatar ' + mood;
+  bubble.textContent  = m.text;
+}
+function updateLevelUI() {
+  document.querySelectorAll('.level-disp').forEach(el => {
+    el.textContent = level + ' / ' + MAX_LEVEL;
+  });
+}
+
+/* ══════════════════════════════════════════════════
    WELCOME SCREEN
 ══════════════════════════════════════════════════ */
 function selectRole(r, el) {
+  sfx.click();
   playerRole = r;
   document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
@@ -749,6 +896,7 @@ function selectRole(r, el) {
 }
 
 function pickDiff(d, el) {
+  sfx.click();
   difficulty = d;
   document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
@@ -762,9 +910,11 @@ function validateWelcome() {
 function startGame() {
   playerName = document.getElementById('inputName').value.trim();
   if (!playerName || !playerRole) return;
-  wins = 0; attempts = 0;
+  sfx.click();
+  wins = 0; attempts = 0; level = 1;
   document.getElementById('wins').textContent     = 0;
   document.getElementById('attempts').textContent = 0;
+  updateLevelUI();
 
   // Meta bar
   document.getElementById('metaPlayer').textContent = playerName;
@@ -773,11 +923,13 @@ function startGame() {
   dt.className   = `diff-tag ${difficulty}`;
 
   showScreen('s-game');
+  setMascot('playing');
   newPuzzle();
 }
 
 function goWelcome() {
   stopTimer();
+  setMascot('idle');
   showScreen('s-welcome');
 }
 
@@ -814,7 +966,7 @@ function generatePuzzle() {
 function renderGrid() {
   const grid   = document.getElementById('grid');
   grid.innerHTML = '';
-  const hints  = HINTS[difficulty];
+  const hints  = levelParams(level).hints;
   const hintSet = new Set(shuffle([0,1,2,3,4,5,6,7,8]).slice(0,hints));
 
   for (let r = 0; r < 4; r++) {
@@ -828,6 +980,12 @@ function renderGrid() {
         cell.dataset.r = r; cell.dataset.c = c;
         const inp = document.createElement('input');
         inp.type = 'number'; inp.min = 1; inp.max = 9;
+        inp.inputMode = 'numeric';
+        /* منع الزيادة/النقصان بالسهم أو بعجلة الفأرة — لازم اللاعب يعرف الرقم مش يجربه */
+        inp.addEventListener('keydown', e => {
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+        });
+        inp.addEventListener('wheel', e => e.preventDefault(), { passive: false });
 
         if (hintSet.has(idx)) {
           inp.value = solution[r][c];
@@ -886,16 +1044,24 @@ function checkAnswers() {
     stopTimer();
     wins++;
     document.getElementById('wins').textContent = wins;
-    msg.textContent = '🎉 ممتاز! إجابة صحيحة!';
+    const wasMaxLevel = level >= MAX_LEVEL;
+    level = Math.min(MAX_LEVEL, level + 1);
+    updateLevelUI();
+    msg.textContent = wasMaxLevel ? '🏆 أنهيت كل المراحل! أنت عبقري حقيقي!' : '🎉 ممتاز! إجابة صحيحة!';
     msg.className = 'msg ok';
     gameOver = true;
     const timeTaken = timerMax - timeLeft;
+    sfx.correct();
+    setMascot(wasMaxLevel ? 'champion' : 'correct');
     launchConfetti();
     saveScore(timeTaken, true);
     setTimeout(() => showResult(true, timeTaken), 1200);
   } else {
+    sfx.wrong();
+    setMascot('wrong');
     msg.textContent = '❌ بعض الإجابات خاطئة، حاول مجدداً!';
     msg.className = 'msg err';
+    setTimeout(() => { if (!gameOver) setMascot('playing'); }, 1600);
   }
 }
 
@@ -908,6 +1074,7 @@ function newPuzzle() {
   renderGrid();
   setMsg('','');
   gameOver = false;
+  setMascot('playing');
   startTimer();
 }
 
@@ -931,7 +1098,7 @@ function setMsg(text, cls) {
 const CIRCUM = 2 * Math.PI * 26; // r=26
 
 function startTimer() {
-  timerMax = DURATION[difficulty];
+  timerMax = levelParams(level).duration;
   timeLeft = timerMax;
   updateTimerUI();
   timerID = setInterval(tick, 1000);
@@ -942,9 +1109,12 @@ function stopTimer() { clearInterval(timerID); timerID = null; }
 function tick() {
   timeLeft = Math.max(0, timeLeft - 1);
   updateTimerUI();
+  if (timeLeft > 0 && timeLeft <= 10) sfx.tick();
   if (timeLeft <= 0) {
     stopTimer();
     gameOver = true;
+    sfx.timeout();
+    setMascot('timeout');
     setMsg('⏰ انتهى الوقت! حاول مرة أخرى.','timeout');
     attempts++;
     document.getElementById('attempts').textContent = attempts;
@@ -986,13 +1156,16 @@ function showResult(won, timeTaken) {
   document.getElementById('resultSub').textContent   =
     won ? `أحسنت ${playerName}! حللت اللغز في ${timeTaken} ثانية`
         : `حاول مرة أخرى ${playerName}، أنت تستطيع!`;
-  document.getElementById('rTime').textContent = won ? timeTaken : '—';
-  document.getElementById('rDiff').textContent = LABELS[difficulty];
-  document.getElementById('rWins').textContent = wins;
+  document.getElementById('rTime').textContent  = won ? timeTaken : '—';
+  document.getElementById('rDiff').textContent  = LABELS[difficulty];
+  document.getElementById('rWins').textContent  = wins;
+  document.getElementById('rLevel').textContent = level + ' / ' + MAX_LEVEL;
+  setMascot(won ? (level >= MAX_LEVEL ? 'champion' : 'win') : 'timeout');
   showScreen('s-result');
 }
 
 function playAgain() {
+  sfx.click();
   showScreen('s-game');
   newPuzzle();
 }
@@ -1007,6 +1180,7 @@ function saveScore(timeTaken, won) {
     roleLabel: ROLES[playerRole],
     diff:      difficulty,
     diffLabel: LABELS[difficulty],
+    level:     level,
     time:      timeTaken,
     won:       !!won,
     ts:        Date.now(),
