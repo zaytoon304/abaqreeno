@@ -418,6 +418,17 @@ body::before {
 .champ-time { font-weight: 700; color: #888; font-size: 12px; }
 .champ-empty{ color: #aaa; font-size: 12px; }
 
+/* أبطال الأسبوع هم الأهم — يبرزون بخلفية ذهبية */
+.champ-weekly-block {
+  background: linear-gradient(135deg, #fff9e6, #fdf2c8);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 12px 12px 6px;
+  margin-bottom: 18px;
+}
+.champ-weekly-block .champ-row { background: rgba(255,255,255,0.65); }
+.champ-weekly-block .champ-section-title { color: #8a6d00; }
+
 .lb-loading { text-align: center; padding: 30px; color: #aaa; font-size: 14px; }
 .lb-empty   { text-align: center; padding: 30px; color: #aaa; font-size: 13px; }
 
@@ -1382,6 +1393,7 @@ function getLocal() {
 ══════════════════════════════════════════════════ */
 function openLeaderboard() {
   document.getElementById('lbOverlay').classList.add('open');
+  setLbView('champions');
   loadLeaderboard();
 }
 function closeLeaderboard() {
@@ -1483,9 +1495,11 @@ function renderChampions() {
   const weekly  = championsFor(7);
   const monthly = championsFor(30);
   div.innerHTML = `
-    <div class="champ-section-title">👑 أبطال الأسبوع</div>
-    ${renderChampRows(weekly)}
-    <div class="champ-section-title" style="margin-top:18px">🏅 أبطال الشهر</div>
+    <div class="champ-weekly-block">
+      <div class="champ-section-title">👑 أبطال الأسبوع</div>
+      ${renderChampRows(weekly)}
+    </div>
+    <div class="champ-section-title">🏅 أبطال الشهر</div>
     ${renderChampRows(monthly)}
   `;
 }
